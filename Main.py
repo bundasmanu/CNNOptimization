@@ -3,6 +3,8 @@ from sklearn.model_selection import train_test_split
 import numpy
 from sklearn.preprocessing import MinMaxScaler
 import pyswarms as ps
+from keras.models import Sequential
+from keras.layers import Dense, Flatten, Conv1D, GlobalMaxPooling1D
 
 def getDataset(testSize):
 
@@ -41,15 +43,22 @@ def applyNormalization(X):
 
     return X
 
-def getBestNumberOfNodesAndKernelForCNN():
+def getBestNumberOfNodesAndKernelForCNN(X, Y, params):
 
     '''
     The objetive of this function is described in objectiveFunctionPSO() function
+    Ref: https://towardsdatascience.com/building-a-convolutional-neural-network-cnn-in-keras-329fbbadc5f5
+    :param X: array with [X_train, X_test]
+    :param Y: array with [Y_train, Y_test]
+    :param params: represents particle parameters --> 2 parameters --> first one input node value and second one kernel length
     :return: error (prevision of samples) of a Particle
     '''
 
-
-
+    #MODEL CREATION --> SEQUENTIAL OPTION, PERMITES TO CREATES A BUILD OF A CNN MODEL
+    model = Sequential()
+    model.add(Conv1D(params[0],kernel_size=params[1], activation='relu', input_shape=X[0].shape[1]))
+    model.add(GlobalMaxPooling1D())
+    model.add(Dense(3, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM
     return None
 
 def objectiveFunctionPSO():
@@ -63,8 +72,7 @@ def objectiveFunctionPSO():
     considered i simple dataset).
     :return: best cost (minor error) and best Particle founded
     '''
-
-
+    return None
 
 def main():
 

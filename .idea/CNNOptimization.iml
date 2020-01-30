@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/venv/test" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (CNNOptimization)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.6 (CNNOptimization)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="R User Library" level="project" />
     <orderEntry type="library" name="R Skeletons" level="application" />
