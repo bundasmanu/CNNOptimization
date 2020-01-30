@@ -57,9 +57,30 @@ def getBestNumberOfNodesAndKernelForCNN(X, Y, params):
     #MODEL CREATION --> SEQUENTIAL OPTION, PERMITES TO CREATES A BUILD OF A CNN MODEL
     model = Sequential()
     model.add(Conv1D(params[0],kernel_size=params[1], activation='relu', input_shape=X[0].shape[1]))
-    model.add(GlobalMaxPooling1D())
-    model.add(Dense(3, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM
-    return None
+    model.add(GlobalMaxPooling1D()) #PODIA TER FEITO APENAS MAXPOOLING E TER DEFINIDO UM VALOR PARA A MATRIX, MAS COMO O EXEMPLO É SIMPLES PENSO QUE ASSIM É MELHOR
+    model.add(Dense(3, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM --> FULLY CONNECTED LAYER
+
+    #COMPILE THE MODEL --> 3 ATTRIBUTES https://towardsdatascience.com/building-a-convolutional-neural-network-cnn-in-keras-329fbbadc5f5
+    #ADAM IS USED TO CONTROL THE RATE LEARNING OF WEIGHTS OF CNN
+    #‘categorical_crossentropy’ for our loss function
+    #NAO PRECISAVA DE USAR NADA DISTO --> SERVE APENAS PARA MELHOR ANÁLISE
+    model.compile(optimizer='adam', loss='categorical_crossentropy')
+    model.fit(X[0], Y[0], epochs=20)
+
+    predictions = model.predict(X[1]) #RETURNS A NUMPY ARRAY WITH PREDICTIONS
+
+    #WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
+    numberRights = 0
+    for i in range(len(Y[1])):
+        if Y[1][i] == predictions[i]:
+            numberRights = numberRights + 1
+
+    hitRate = numberRights/Y[1].shape #HIT PERCENTAGE OF CORRECT PREVISIONS
+
+    #LOSS FUNCTION --> I VALORIZE PARTICLES IF MINOR VALUES OF NODES AND KERNEL'S BUT I PUT MORE IMPORTANCE IN PARTICLES THAT GIVE MORE ACCURACY RATE
+    loss = (1.0 * (1.0 - (1/params[0]))) + (0.5 * (1.0 - (1/params[1]))) + (2.0 * (1- hitRate)) #I GIVE THIS WEIGHTS IN ORDER TO OBTAIN GOOD SOLUTIONS, WITH LOW VALUE PARAMETERS, THUS REDUCING COMPUTATIONAL POWER
+
+    return loss
 
 def objectiveFunctionPSO():
 
@@ -89,7 +110,7 @@ def main():
     #PSO FORMULATION
     options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
     dimensions = 2 # IN FIRST DIMENSION I HAVE REPRESENTED NUMBER OF NODES ON A CNN LAYER, AND IN SECOND DIMENSION KERNEL USED ON CNN LAYER (MATRIX)
-    bounds = [64, 30] #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
+    bounds = (64, 30) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
 
     optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options,bounds=bounds)
 
