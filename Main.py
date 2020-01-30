@@ -43,16 +43,21 @@ def applyNormalization(X):
 
     return X
 
-def getBestNumberOfNodesAndKernelForCNN(X, Y, params):
+def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params):
 
     '''
     The objetive of this function is described in objectiveFunctionPSO() function
     Ref: https://towardsdatascience.com/building-a-convolutional-neural-network-cnn-in-keras-329fbbadc5f5
-    :param X: array with [X_train, X_test]
-    :param Y: array with [Y_train, Y_test]
-    :param params: represents particle parameters --> 2 parameters --> first one input node value and second one kernel length
+    :param X_train: array --> samples for train
+    :param X_test: array --> samples for test
+    :param Y_train: array --> samples for train
+    :param Y_test: array --> samples for test
+    :param params: represents particle parameters --> 2 parameters --> first one input node value and second one kernel length --> unidimensional array
     :return: error (prevision of samples) of a Particle
     '''
+
+    #TRANSFORM DOUBLE VALUES OF PARTICLE DIMENSION FROM DOUBLE TO INTEGER --> PSO USES DOUBLE VALUES
+    params = [int(params[i]) for i in range(len(params))]
 
     #MODEL CREATION --> SEQUENTIAL OPTION, PERMITES TO CREATES A BUILD OF A CNN MODEL
     model = Sequential()
@@ -65,24 +70,24 @@ def getBestNumberOfNodesAndKernelForCNN(X, Y, params):
     #‘categorical_crossentropy’ for our loss function
     #NAO PRECISAVA DE USAR NADA DISTO --> SERVE APENAS PARA MELHOR ANÁLISE
     model.compile(optimizer='adam', loss='categorical_crossentropy')
-    model.fit(X[0], Y[0], epochs=20)
+    model.fit(X_train, Y_train, epochs=20)
 
-    predictions = model.predict(X[1]) #RETURNS A NUMPY ARRAY WITH PREDICTIONS
+    predictions = model.predict(X_test) #RETURNS A NUMPY ARRAY WITH PREDICTIONS
 
     #WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
     numberRights = 0
-    for i in range(len(Y[1])):
-        if Y[1][i] == predictions[i]:
+    for i in range(len(Y_test)):
+        if Y_test[i] == predictions[i]:
             numberRights = numberRights + 1
 
-    hitRate = numberRights/Y[1].shape #HIT PERCENTAGE OF CORRECT PREVISIONS
+    hitRate = numberRights/len(Y_test) #HIT PERCENTAGE OF CORRECT PREVISIONS
 
     #LOSS FUNCTION --> I VALORIZE PARTICLES IF MINOR VALUES OF NODES AND KERNEL'S BUT I PUT MORE IMPORTANCE IN PARTICLES THAT GIVE MORE ACCURACY RATE
     loss = (1.0 * (1.0 - (1/params[0]))) + (0.5 * (1.0 - (1/params[1]))) + (2.0 * (1- hitRate)) #I GIVE THIS WEIGHTS IN ORDER TO OBTAIN GOOD SOLUTIONS, WITH LOW VALUE PARAMETERS, THUS REDUCING COMPUTATIONAL POWER
 
     return loss
 
-def objectiveFunctionPSO():
+def objectiveFunctionPSO(particles, X_train, X_test, Y_train, Y_test):
 
     '''
     This function represents the objetive function used in the calculus
@@ -91,12 +96,19 @@ def objectiveFunctionPSO():
     values of this two attributes, and the main objetive is to find the best
     combination of this two attributes, minimizing the error of prevision (I
     considered i simple dataset).
+    :param particles: numpy array of shape (nParticles, dimensions)
+    :param X_train: array --> samples for train
+    :param X_test: array --> samples for test
+    :param Y_train: array --> samples for train
+    :param Y_test: array --> samples for test
     :return: best cost (minor error) and best Particle founded
     '''
-    return None
+
+    nParticles = particles.shape[0] #number of Particles
+    particleLoss = [getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, particles[i])for i in range(nParticles)]
+    return particleLoss
 
 def main():
-
 
     '''
         GET ALL PARTIES NEEDED FROM DATASET
@@ -104,17 +116,16 @@ def main():
 
     X, Y, x_train, x_test, y_train, y_test = getDataset(25) #TEST PERCENTAGE IS 25%
 
-    print(X)
-    print(Y)
-
     #PSO FORMULATION
     options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
     dimensions = 2 # IN FIRST DIMENSION I HAVE REPRESENTED NUMBER OF NODES ON A CNN LAYER, AND IN SECOND DIMENSION KERNEL USED ON CNN LAYER (MATRIX)
-    bounds = (64, 30) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
+    minBound = numpy.zeros(2)#MIN VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    maxBound = 64 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
 
-    optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options,bounds=bounds)
+    optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
 
-    cost, pos = optimizer.optimize(objectiveFunctionPSO, iters=100)
+    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=100)
 
 if __name__ == "__main__":
     main()
