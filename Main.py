@@ -68,15 +68,15 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     X_test = X_test.reshape(len(X_test), 4, 1)
 
     #CONVERTION OF VECTOR OUTPUT CLASSES TO BINARY
-    Y_train = keras.utils.to_categorical(Y_train, 4)
-    Y_test = keras.utils.to_categorical(Y_test, 4)
+    Y_train = keras.utils.to_categorical(Y_train, 3)
+    Y_test = keras.utils.to_categorical(Y_test, 3)
 
     #MODEL CREATION --> SEQUENTIAL OPTION, PERMITES TO CREATES A BUILD OF A CNN MODEL
     model = Sequential()
-    model.add(Conv1D(params[0], params[1] , activation='relu', input_shape=(4,1)))
-    model.add(MaxPooling1D(pool_size= 2)) #PODIA TER FEITO APENAS MAXPOOLING E TER DEFINIDO UM VALOR PARA A MATRIX, MAS COMO O EXEMPLO É SIMPLES PENSO QUE ASSIM É MELHOR
+    model.add(Conv1D(params[0], 2, activation='relu', input_shape=(4,1)))
+    model.add(MaxPooling1D(pool_size= 1)) #PODIA TER FEITO APENAS MAXPOOLING E TER DEFINIDO UM VALOR PARA A MATRIX, MAS COMO O EXEMPLO É SIMPLES PENSO QUE ASSIM É MELHOR
     model.add(Flatten())
-    model.add(Dense(4, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM --> FULLY CONNECTED LAYER
+    model.add(Dense(3, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM --> FULLY CONNECTED LAYER
     model.summary()
     #COMPILE THE MODEL --> 3 ATTRIBUTES https://towardsdatascience.com/building-a-convolutional-neural-network-cnn-in-keras-329fbbadc5f5
     #ADAM IS USED TO CONTROL THE RATE LEARNING OF WEIGHTS OF CNN
@@ -91,7 +91,7 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     numberRights = 0
     for i in range(len(Y_test)):
         indexMaxValue = numpy.argmax(predictions[i], axis=0)
-        if indexMaxValue == numpy.argmax(Y_test[i], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+        if indexMaxValue == Y_test[i]: #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
             numberRights = numberRights + 1
 
     hitRate = numberRights / len(Y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
@@ -135,7 +135,8 @@ def main():
     options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
     dimensions = 2 # IN FIRST DIMENSION I HAVE REPRESENTED NUMBER OF NODES ON A CNN LAYER, AND IN SECOND DIMENSION KERNEL USED ON CNN LAYER (MATRIX)
     minBound = numpy.ones(2)#MIN VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
-    maxBound = 4 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    maxBound = 64 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    maxBound[1] = 4 #IN THIS DIMENSION THE MAX VALUE IS 4
     bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
 
     optimizer = ps.single.GlobalBestPSO(n_particles=10, dimensions=dimensions, options=options, bounds=bounds)
