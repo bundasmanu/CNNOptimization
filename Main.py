@@ -68,32 +68,34 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     X_test = X_test.reshape(len(X_test), 4, 1)
 
     #CONVERTION OF VECTOR OUTPUT CLASSES TO BINARY
-    y_train = keras.utils.to_categorical(Y_train, 4)
-    y_test = keras.utils.to_categorical(Y_test, 4)
+    Y_train = keras.utils.to_categorical(Y_train, 4)
+    Y_test = keras.utils.to_categorical(Y_test, 4)
 
     #MODEL CREATION --> SEQUENTIAL OPTION, PERMITES TO CREATES A BUILD OF A CNN MODEL
     model = Sequential()
     model.add(Conv1D(params[0], params[1] , activation='relu', input_shape=(4,1)))
-    model.add(MaxPooling1D(pool_size= int((params[0]+params[1])/2))) #PODIA TER FEITO APENAS MAXPOOLING E TER DEFINIDO UM VALOR PARA A MATRIX, MAS COMO O EXEMPLO É SIMPLES PENSO QUE ASSIM É MELHOR
-    #model.add(Flatten())
-    model.add(Dense(2, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM --> FULLY CONNECTED LAYER
+    model.add(MaxPooling1D(pool_size= 2)) #PODIA TER FEITO APENAS MAXPOOLING E TER DEFINIDO UM VALOR PARA A MATRIX, MAS COMO O EXEMPLO É SIMPLES PENSO QUE ASSIM É MELHOR
+    model.add(Flatten())
+    model.add(Dense(4, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM --> FULLY CONNECTED LAYER
     model.summary()
     #COMPILE THE MODEL --> 3 ATTRIBUTES https://towardsdatascience.com/building-a-convolutional-neural-network-cnn-in-keras-329fbbadc5f5
     #ADAM IS USED TO CONTROL THE RATE LEARNING OF WEIGHTS OF CNN
     #‘categorical_crossentropy’ for our loss function
     #NAO PRECISAVA DE USAR NADA DISTO --> SERVE APENAS PARA MELHOR ANÁLISE
     model.compile(optimizer='adam', loss='categorical_crossentropy')
-    model.fit(X_train, Y_train, epochs=20)
+    model.fit(X_train, Y_train, epochs=5)
 
-    predictions = model.predict(X_test) #RETURNS A NUMPY ARRAY WITH PREDICTIONS
+    predictions = model.predict(X_test)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
 
-    #WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
+    # WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
     numberRights = 0
     for i in range(len(Y_test)):
-        if Y_test[i] == predictions[i]:
+        indexMaxValue = numpy.argmax(predictions[i], axis=0)
+        if indexMaxValue == numpy.argmax(Y_test[i], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
             numberRights = numberRights + 1
 
-    hitRate = numberRights/len(Y_test) #HIT PERCENTAGE OF CORRECT PREVISIONS
+    hitRate = numberRights / len(Y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
+    print(hitRate)
 
     #LOSS FUNCTION --> I VALORIZE PARTICLES IF MINOR VALUES OF NODES AND KERNEL'S BUT I PUT MORE IMPORTANCE IN PARTICLES THAT GIVE MORE ACCURACY RATE
     loss = (1.0 * (1.0 - (1/params[0]))) + (0.5 * (1.0 - (1/params[1]))) + (2.0 * (1- hitRate)) #I GIVE THIS WEIGHTS IN ORDER TO OBTAIN GOOD SOLUTIONS, WITH LOW VALUE PARAMETERS, THUS REDUCING COMPUTATIONAL POWER
@@ -136,9 +138,9 @@ def main():
     maxBound = 4 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
     bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
 
-    optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
+    optimizer = ps.single.GlobalBestPSO(n_particles=10, dimensions=dimensions, options=options, bounds=bounds)
 
-    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=100)
+    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=5)
 
 if __name__ == "__main__":
     main()
