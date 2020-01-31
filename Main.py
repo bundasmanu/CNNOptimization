@@ -4,7 +4,8 @@ import numpy
 from sklearn.preprocessing import MinMaxScaler
 import pyswarms as ps
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv1D, GlobalMaxPooling1D
+from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D
+import keras
 
 def getDataset(testSize):
 
@@ -59,12 +60,24 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     #TRANSFORM DOUBLE VALUES OF PARTICLE DIMENSION FROM DOUBLE TO INTEGER --> PSO USES DOUBLE VALUES
     params = [int(params[i]) for i in range(len(params))]
 
+    print(params[0])
+    print(params[1])
+
+    #RESHAPE DOS DADOS DE TREINO
+    X_train = X_train.reshape(len(X_train), 4, 1)
+    X_test = X_test.reshape(len(X_test), 4, 1)
+
+    #CONVERTION OF VECTOR OUTPUT CLASSES TO BINARY
+    y_train = keras.utils.to_categorical(Y_train, 4)
+    y_test = keras.utils.to_categorical(Y_test, 4)
+
     #MODEL CREATION --> SEQUENTIAL OPTION, PERMITES TO CREATES A BUILD OF A CNN MODEL
     model = Sequential()
-    model.add(Conv1D(params[0],kernel_size=params[1], activation='relu', input_shape=X[0].shape[1]))
-    model.add(GlobalMaxPooling1D()) #PODIA TER FEITO APENAS MAXPOOLING E TER DEFINIDO UM VALOR PARA A MATRIX, MAS COMO O EXEMPLO É SIMPLES PENSO QUE ASSIM É MELHOR
-    model.add(Dense(3, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM --> FULLY CONNECTED LAYER
-
+    model.add(Conv1D(params[0], params[1] , activation='relu', input_shape=(4,1)))
+    model.add(MaxPooling1D(pool_size= int((params[0]+params[1])/2))) #PODIA TER FEITO APENAS MAXPOOLING E TER DEFINIDO UM VALOR PARA A MATRIX, MAS COMO O EXEMPLO É SIMPLES PENSO QUE ASSIM É MELHOR
+    #model.add(Flatten())
+    model.add(Dense(2, activation='softmax')) #THREE THE NUMBER OF OUPUTS OF PROBLEM --> FULLY CONNECTED LAYER
+    model.summary()
     #COMPILE THE MODEL --> 3 ATTRIBUTES https://towardsdatascience.com/building-a-convolutional-neural-network-cnn-in-keras-329fbbadc5f5
     #ADAM IS USED TO CONTROL THE RATE LEARNING OF WEIGHTS OF CNN
     #‘categorical_crossentropy’ for our loss function
@@ -119,8 +132,8 @@ def main():
     #PSO FORMULATION
     options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
     dimensions = 2 # IN FIRST DIMENSION I HAVE REPRESENTED NUMBER OF NODES ON A CNN LAYER, AND IN SECOND DIMENSION KERNEL USED ON CNN LAYER (MATRIX)
-    minBound = numpy.zeros(2)#MIN VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
-    maxBound = 64 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    minBound = numpy.ones(2)#MIN VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    maxBound = 4 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
     bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
 
     optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
