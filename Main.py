@@ -58,7 +58,7 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     '''
 
     #TRANSFORM DOUBLE VALUES OF PARTICLE DIMENSION FROM DOUBLE TO INTEGER --> PSO USES DOUBLE VALUES
-    params = [int(params[i]) for i in range(len(params))]
+    params = [int(round(params[i])) for i in range(len(params))] #ROUND FUNCTION WAS USED, IN ORDER TO AVOID DOWN UP ROUND'S, IF I DIDN'T CONSIDERED ROUND THIS VALUES ARE DOWN UP (1,6) --> 1, AND I WANT (1,6) --> 2
 
     print(params[0])
     print(params[1])
@@ -83,7 +83,7 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     #‘categorical_crossentropy’ for our loss function
     #NAO PRECISAVA DE USAR NADA DISTO --> SERVE APENAS PARA MELHOR ANÁLISE
     model.compile(optimizer='adam', loss='categorical_crossentropy')
-    model.fit(X_train, Y_train, epochs=5)
+    model.fit(X_train, Y_train, epochs=1)
 
     predictions = model.predict(X_test)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
 
@@ -91,7 +91,7 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     numberRights = 0
     for i in range(len(Y_test)):
         indexMaxValue = numpy.argmax(predictions[i], axis=0)
-        if indexMaxValue == Y_test[i]: #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+        if indexMaxValue == numpy.argmax(Y_test[i], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
             numberRights = numberRights + 1
 
     hitRate = numberRights / len(Y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
@@ -99,6 +99,8 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
 
     #LOSS FUNCTION --> I VALORIZE PARTICLES IF MINOR VALUES OF NODES AND KERNEL'S BUT I PUT MORE IMPORTANCE IN PARTICLES THAT GIVE MORE ACCURACY RATE
     loss = (1.0 * (1.0 - (1/params[0]))) + (0.5 * (1.0 - (1/params[1]))) + (2.0 * (1- hitRate)) #I GIVE THIS WEIGHTS IN ORDER TO OBTAIN GOOD SOLUTIONS, WITH LOW VALUE PARAMETERS, THUS REDUCING COMPUTATIONAL POWER
+
+    print(loss)
 
     return loss
 
@@ -139,9 +141,9 @@ def main():
     maxBound[1] = 4 #IN THIS DIMENSION THE MAX VALUE IS 4
     bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
 
-    optimizer = ps.single.GlobalBestPSO(n_particles=10, dimensions=dimensions, options=options, bounds=bounds)
+    optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
 
-    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=5)
+    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=2)
 
 if __name__ == "__main__":
     main()
