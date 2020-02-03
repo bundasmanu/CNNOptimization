@@ -44,6 +44,10 @@ def applyNormalization(X):
 
     return X
 
+'''
+    CONVOLUTION NEURAL NETWORK OPTIMIZATION USING PSO (CNN)
+'''
+
 def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params):
 
     '''
@@ -124,6 +128,10 @@ def objectiveFunctionPSO(particles, X_train, X_test, Y_train, Y_test):
     nParticles = particles.shape[0] #number of Particles
     particleLoss = [getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, particles[i])for i in range(nParticles)]
     return particleLoss
+
+'''
+    LONG SHORT-TERM MEMORY OPTIMIZATION USING PSO (LSTM) --> AFTER THAT I COULD CREATE AN EXAMPLE USING THIS TWO TECHNIQUES SIMULTANEOUSLY
+'''
 
 def main():
 
