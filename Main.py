@@ -4,7 +4,7 @@ import numpy
 from sklearn.preprocessing import MinMaxScaler
 import pyswarms as ps
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D
+from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM
 import keras
 
 def getDataset(testSize):
@@ -75,6 +75,7 @@ def getBestNumberOfNodesAndKernelForCNN(X_train, X_test, Y_train, Y_test, params
     Y_train = keras.utils.to_categorical(Y_train, 3)
     Y_test = keras.utils.to_categorical(Y_test, 3)
 
+    #EXPLANATION OF INPUT_SHAPE: input_shape needs only the shape of a sample: (timesteps,data_dim)
     #MODEL CREATION --> SEQUENTIAL OPTION, PERMITES TO CREATES A BUILD OF A CNN MODEL
     model = Sequential()
     model.add(Conv1D(params[0], 2, activation='relu', input_shape=(4,1)))
@@ -132,6 +133,27 @@ def objectiveFunctionPSO(particles, X_train, X_test, Y_train, Y_test):
 '''
     LONG SHORT-TERM MEMORY OPTIMIZATION USING PSO (LSTM) --> AFTER THAT I COULD CREATE AN EXAMPLE USING THIS TWO TECHNIQUES SIMULTANEOUSLY
 '''
+
+def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size):
+
+    '''
+
+    :param X_train: array --> samples for train
+    :param X_test: array --> samples for test
+    :param Y_train: array --> samples for train
+    :param Y_test: array --> samples for test
+    :param neurons: number of neurons used in LSTM, this value is defined before
+    :param batch_size: length of batch_size, this value is defined before
+    :return: error (prevision of samples) of a Particle
+    '''
+
+    #EXPLANATION OF BATCH_SHAPE: batch_input_shape needs the size of the batch: (numberofSequence,timesteps,data_dim)
+    #I NEED TO GET ATTENTION TO MULTIPLES, IF I USER MANY LSTM LAYERS --> https://stackoverflow.com/questions/47187149/keras-lstm-batch-input-shape
+
+    model = Sequential()
+    #model.add(LSTM(neurons, batch_input_shape=(batch_size, X.shape[1], X.shape[2])))
+    model.add(Dense(3)) #3 OUTPUTS
+    model.compile(loss='mean_squared_error', optimizer='adam')
 
 def main():
 
