@@ -141,7 +141,9 @@ def main():
 
     X, Y, x_train, x_test, y_train, y_test = getDataset(25) #TEST PERCENTAGE IS 25%
 
-    #PSO FORMULATION
+    '''
+        PSO FORMULATION FOR CNN IMPLEMENTATION
+    '''
     options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
     dimensions = 2 # IN FIRST DIMENSION I HAVE REPRESENTED NUMBER OF NODES ON A CNN LAYER, AND IN SECOND DIMENSION KERNEL USED ON CNN LAYER (MATRIX)
     minBound = numpy.ones(2)#MIN VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
@@ -152,6 +154,19 @@ def main():
     optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
 
     cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=2)
+
+    '''
+        PSO FORMULATION FOR LSTM IMPLEMENTATION
+    '''
+
+    #NEED TO DEFINE INITIAL VALUES OF LSTM (BATCH_SIZE, TIME_STEMP, ...), IN ORDER TO DEFINE THE DIMENSIONS OF PSO --> I CAN CREATE AN PSO OPTIMIZER BEFORE, TO CHECK THIS VALUES, OR DEFINE NEW DIMENSIONS SPECIFIC TO THIS VALUES
+    #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
+
+    dimensions = 10 #I NEED TO UNDERSTAND SHAPE OF WEIGHT MATRICES https://stackoverflow.com/questions/42861460/how-to-interpret-weights-in-a-lstm-layer-in-keras
+
+    optimizer = ps.single.GlobalBestPSO(n_particles=20, dimensions=dimensions, options=options) #DEFAULT BOUNDS
+
+    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=5) #the cost function has yet to be created
 
 if __name__ == "__main__":
     main()
