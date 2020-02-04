@@ -151,10 +151,63 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     #I NEED TO GET ATTENTION TO MULTIPLES, IF I USER MANY LSTM LAYERS --> https://stackoverflow.com/questions/47187149/keras-lstm-batch-input-shape
     #LINK WITH STATEFUL APPROACH --> https://fairyonice.github.io/Stateful-LSTM-model-training-in-Keras.html
 
+    #RESHAPE THE DATA TO USE ON MODEL, FORMAT: (NumberOfExamples, TimeSteps, FeaturesPerStep)
+    x_train = x_train.reshape(len(x_train),time_stemps, features)
+    x_test =  x_test.reshape(len(x_test), time_stemps, features)
+
+    #RESHAPE TARGETS --> FORMAT: (NumberOfExamples, TimeSteps) --> https://stackoverflow.com/questions/46165464/reshape-keras-input-for-lstm
+    y_train = y_train(len(y_train), 3) #3 POSSIBLE RESULTS THEN 3 TIME STEMPS
+    y_test = y_test(len(y_test), 3)
+
+    #FINNALY I NEED TO CONVERT THE CLASSES (TARGETS) TO BINARY
+    y_train = keras.utils.to_categorical(y_train, 3)
+    y_test = keras.utils.to_categorical(y_test, 3)
+
     model = Sequential()
     model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features)))
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
+
+    #FITTING MODEL
+    model.fit(x_train, y_train, epochs=2)
+
+    predictions = model.predict(x_test)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
+
+    # WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
+    numberRights = 0
+    for i in range(len(y_test)):
+        indexMaxValue = numpy.argmax(predictions[i], axis=0)
+        if indexMaxValue == numpy.argmax(y_test[i], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+            numberRights = numberRights + 1
+
+    hitRate = numberRights / len(y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
+    print(hitRate)
+
+    #LOSS FUNCTION --> THE OBJECTIVE IS TO MINIMIZE THE LOSS, AND BEST ACCURACY'S MINIMIZE'S LOSS --> EXAMPLE: LOSS = (1- 0,8) < LOSS = (1-0,2)
+    loss = (1- hitRate)
+
+    print(loss)
+
+    return loss
+
+def applyLSTMUsingPSO(particles, x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features):
+
+    '''
+
+    :param x_train: training samples dataset
+    :param x_test: testing samples dataset
+    :param y_train: training targets
+    :param y_test: testing targets
+    :param neurons: number of neurons using in model
+    :param batch_size: batch size using on LSTM --> in concordance with training and test dataset's
+    :param time_stemps:
+    :param features: number features of problem
+    :return: numpy array with all particles loss
+    '''
+
+    nParticles = particles.shape[0]
+    loss = [objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features) for i in range(nParticles)] #FALTA AINDA PASSAR OS DADOS DE UMA PARTICULA, MAS POR AGORA NAO INTERESSA --> 1º NECESSÁRIO COLOCAR O MODELO FUNCIONAL
+    return loss
 
 def main():
 
@@ -197,7 +250,7 @@ def main():
 
     optimizer = ps.single.GlobalBestPSO(n_particles=20, dimensions=dimensions, options=options) #DEFAULT BOUNDS
 
-    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=5) #the cost function has yet to be created
+    cost, pos = optimizer.optimize(applyLSTMUsingPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=5) #the cost function has yet to be created
 
 if __name__ == "__main__":
     main()
