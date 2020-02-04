@@ -134,7 +134,7 @@ def objectiveFunctionPSO(particles, X_train, X_test, Y_train, Y_test):
     LONG SHORT-TERM MEMORY OPTIMIZATION USING PSO (LSTM) --> AFTER THAT I COULD CREATE AN EXAMPLE USING THIS TWO TECHNIQUES SIMULTANEOUSLY
 '''
 
-def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size):
+def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features):
 
     '''
 
@@ -147,11 +147,12 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size)
     :return: error (prevision of samples) of a Particle
     '''
 
-    #EXPLANATION OF BATCH_SHAPE: batch_input_shape needs the size of the batch: (numberofSequence,timesteps,data_dim)
+    #EXPLANATION OF BATCH_SHAPE: batch_input_shape needs the size of the batch: (batch_size,timesteps,data_dim)
     #I NEED TO GET ATTENTION TO MULTIPLES, IF I USER MANY LSTM LAYERS --> https://stackoverflow.com/questions/47187149/keras-lstm-batch-input-shape
+    #LINK WITH STATEFUL APPROACH --> https://fairyonice.github.io/Stateful-LSTM-model-training-in-Keras.html
 
     model = Sequential()
-    #model.add(LSTM(neurons, batch_input_shape=(batch_size, X.shape[1], X.shape[2])))
+    model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features)))
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
 
@@ -185,6 +186,14 @@ def main():
     #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
 
     dimensions = 10 #I NEED TO UNDERSTAND SHAPE OF WEIGHT MATRICES https://stackoverflow.com/questions/42861460/how-to-interpret-weights-in-a-lstm-layer-in-keras
+    neurons = 32
+    batch_size = 30 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
+    time_stemps = 3 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
+    data_dimension = 4 #NUMBER OF FEATURES
+
+    #I CANT USE THE DATASET DEFINE BEFORE, BECAUSE WITH A 25 PERCENTAGE I CANT GET A POSSIBLE BATCH_SIZE TO DIVIDE BY THIS TWO DATASET'S
+    #LINK WITH THIS EXPLANATION --> https://medium.com/@ellery.leung/rnn-lstm-example-with-keras-about-input-shape-94120b0050e
+    X, Y, x_train, x_test, y_train, y_test = getDataset(20)  # I NEED TO RESTORE THE DATASET PERCENTAGE, IN ORDER TO FIND A VALUE DIVISIVEL BY TRAIN AND TEST DATASET: 150 SAMPLES --> 120 FOR TRAIN AND 30 FOR TEST, AND WITH A BATCH_SIZE= 30 I CAN DIVIDE FOR THIS TWO DATASET'S
 
     optimizer = ps.single.GlobalBestPSO(n_particles=20, dimensions=dimensions, options=options) #DEFAULT BOUNDS
 
