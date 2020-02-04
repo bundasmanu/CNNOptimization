@@ -4,7 +4,7 @@ import numpy
 from sklearn.preprocessing import MinMaxScaler
 import pyswarms as ps
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM
+from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
 import keras
 
 def getDataset(testSize):
@@ -152,26 +152,35 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     #LINK WITH STATEFUL APPROACH --> https://fairyonice.github.io/Stateful-LSTM-model-training-in-Keras.html
 
     #RESHAPE THE DATA TO USE ON MODEL, FORMAT: (NumberOfExamples, TimeSteps, FeaturesPerStep)
-    x_train = x_train.reshape(len(x_train),time_stemps, features)
-    x_test =  x_test.reshape(len(x_test), time_stemps, features)
+    #EXPLANATION WHEN I NEED TO USE A TIME_STEMP DIFFERENT OF 1 --> https://github.com/keras-team/keras/issues/8568
+    examplesWithoutTimeStempsXTrain = int((len(x_train)/time_stemps))
+    examplesWithoutTimeStempsXTest = int((len(x_test) / time_stemps))
+    x_train = x_train.reshape(examplesWithoutTimeStempsXTrain ,time_stemps, features)
+    x_test =  x_test.reshape(examplesWithoutTimeStempsXTest, time_stemps, features)
 
     #RESHAPE TARGETS --> FORMAT: (NumberOfExamples, TimeSteps) --> https://stackoverflow.com/questions/46165464/reshape-keras-input-for-lstm
-    y_train = y_train(len(y_train), 3) #3 POSSIBLE RESULTS THEN 3 TIME STEMPS
-    y_test = y_test(len(y_test), 3)
+    y_train = y_train.reshape(int((len(y_train)/3)), 3) #3 POSSIBLE RESULTS THEN 3 TIME STEMPS
+    y_test = y_test.reshape((int(len(y_test)/3)), 3)
 
     #FINNALY I NEED TO CONVERT THE CLASSES (TARGETS) TO BINARY
-    y_train = keras.utils.to_categorical(y_train, 3)
-    y_test = keras.utils.to_categorical(y_test, 3)
+    y_train = keras.utils.to_categorical(y_train) #ALREADY MAKE RESHAPE BEFORE, AND NOW I DIDN'T NEED TO REAJUST ARRAY, ONLY NEED TO CONVERT TO BINARY
+    y_test = keras.utils.to_categorical(y_test)
+
+    #!!!!!!!!!!!!!!!!!!VERY IMPORTANT!!!!!!!!!!!!!!!!!!!!!
+    #WHEN RETURN SEQUENCES = TRUE --> OUTPUT IS (#Samples, #Time steps, #NEURONS) AND IS FALSE : (#Samples, #LSTM units)
+    #https://www.dlology.com/blog/how-to-use-return_state-or-return_sequences-in-keras/
+    #NUMA ARQUITETURA STATEFUL, O Nº DAS AMOSTRAS TEM DE SER DIVISIVEL PELO BATCH SIZE
 
     model = Sequential()
-    model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features)))
+    model.add(LSTM(neurons, activation='sigmoid', batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True))
+    model.add(Dropout(0.5))
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
-
+    model.summary()
     #FITTING MODEL
-    model.fit(x_train, y_train, epochs=2)
+    model.fit(x_train, y_train, epochs=1, batch_size=batch_size, shuffle=False)
 
-    predictions = model.predict(x_test)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
+    predictions = model.predict(x_test, batch_size=batch_size)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
 
     # WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
     numberRights = 0
@@ -227,9 +236,9 @@ def main():
     maxBound[1] = 4 #IN THIS DIMENSION THE MAX VALUE IS 4
     bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
 
-    optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
+    #optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
 
-    cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=2)
+    #cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=2)
 
     '''
         PSO FORMULATION FOR LSTM IMPLEMENTATION
@@ -239,8 +248,8 @@ def main():
     #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
 
     dimensions = 10 #I NEED TO UNDERSTAND SHAPE OF WEIGHT MATRICES https://stackoverflow.com/questions/42861460/how-to-interpret-weights-in-a-lstm-layer-in-keras
-    neurons = 32
-    batch_size = 30 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
+    neurons = 30
+    batch_size = 10 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
     time_stemps = 3 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
     data_dimension = 4 #NUMBER OF FEATURES
 
@@ -250,7 +259,7 @@ def main():
 
     optimizer = ps.single.GlobalBestPSO(n_particles=20, dimensions=dimensions, options=options) #DEFAULT BOUNDS
 
-    cost, pos = optimizer.optimize(applyLSTMUsingPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=5) #the cost function has yet to be created
+    cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=5) #the cost function has yet to be created
 
 if __name__ == "__main__":
     main()
