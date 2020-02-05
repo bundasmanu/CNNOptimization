@@ -6,7 +6,7 @@ import pyswarms as ps
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
 import keras
-import WeightsUpgradeOnTraining
+import WeightsUpgradeOnTraining, WeightsInitializer
 
 def getDataset(testSize):
 
@@ -198,9 +198,14 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     #NUMA ARQUITETURA STATEFUL, O Nº DAS AMOSTRAS TEM DE SER DIVISIVEL PELO BATCH SIZE
 
     #I NEED TO MAKE A SEPARATION BETWEEN THE PARTICLES (PSO) WEIGHTS--> IN TO MATRICES, KERNEL INPUT MATRIX AND RECURRENT KERNEL MATRIX
+    inputParticleWeights, recurrentParticleWeigths = separationWeights(particleWeights, neurons, features)
+
+    #DEFINITION OF MY CUSTOM CLASS INITIALIZER OF KERNEL AND RECURRENT WEIGHTS
+    initializer = WeightsInitializer.WeightsInitializer()
 
     model = Sequential()
-    model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True))
+    model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True,
+                   kernel_initializer=initializer.initInputMat(inputParticleWeights), recurrent_initializer= initializer.initRecMat(recurrentParticleWeigths)))
     #model.add(Dropout(0))
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
