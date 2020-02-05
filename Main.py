@@ -6,7 +6,7 @@ import pyswarms as ps
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
 import keras
-import WeightsUpgrade
+import WeightsUpgradeOnTraining
 
 def getDataset(testSize):
 
@@ -180,7 +180,7 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     model.summary()
 
     # INITIALIZATION OF CALLBACK, AND DEFINE THEM IN MODEL FITNESS
-    weightsCallback = WeightsUpgrade.WeightsUpgrade(particleWeights=100, numberOfNeurons=neurons) #PARTICLES WEIGHTS IS TEMPORARY
+    weightsCallback = WeightsUpgradeOnTraining.WeightsUpgradeOnTraining(particleWeights=100, numberOfNeurons=neurons) #PARTICLES WEIGHTS IS TEMPORARY
 
     #FITTING MODEL
     model.fit(x_train, y_train, epochs=5, batch_size=batch_size, shuffle=False, callbacks=[weightsCallback])#BATCH_SIZE AND SHUFFLE BECAUSE TIME_STEPS DIFFERENT FROM 1
@@ -253,11 +253,15 @@ def main():
     #NEED TO DEFINE INITIAL VALUES OF LSTM (BATCH_SIZE, TIME_STEMP, ...), IN ORDER TO DEFINE THE DIMENSIONS OF PSO --> I CAN CREATE AN PSO OPTIMIZER BEFORE, TO CHECK THIS VALUES, OR DEFINE NEW DIMENSIONS SPECIFIC TO THIS VALUES
     #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
 
-    dimensions = 10 #I NEED TO UNDERSTAND SHAPE OF WEIGHT MATRICES https://stackoverflow.com/questions/42861460/how-to-interpret-weights-in-a-lstm-layer-in-keras
     neurons = 10
     batch_size = 10 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
     time_stemps = 3 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
     data_dimension = 4 #NUMBER OF FEATURES
+
+    #DEFINITION OF THE DIMENSIONS OF THE PROBLEM --> REPRESENTS THE WEIGHTS OF LSTM LAYER (KERNEL AND RECURRENT MATRIXES) --> I DIDN'T CONSIDER BIAS HERE
+    kernelMatrix_Input = (data_dimension * neurons) * 4 #(data_dimension * neurons) REPRESENTS W_I OR W_F OR W_C OR W_O AND THEN I NEED TO MULTIPLY BY THE 4 HYPHOTESIS (W_I, W_F, W_C, W_O)
+    recurrentKernel = (neurons * neurons) * 4 #(neurons * neurons) REPRESENTS THE NUMBER OF POSSIBLE NEURONS ON A STATE, AND THEN I NEED TO MULTIPLY BY 4 (ALL STATES U_I, U_F, U_C, U_O)
+    dimensions = kernelMatrix_Input + recurrentKernel
 
     #I CANT USE THE DATASET DEFINE BEFORE, BECAUSE WITH A 25 PERCENTAGE I CANT GET A POSSIBLE BATCH_SIZE TO DIVIDE BY THIS TWO DATASET'S
     #LINK WITH THIS EXPLANATION --> https://medium.com/@ellery.leung/rnn-lstm-example-with-keras-about-input-shape-94120b0050e

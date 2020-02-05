@@ -1,7 +1,7 @@
 from keras.callbacks import Callback
 import numpy
 
-class WeightsUpgrade(Callback):
+class WeightsUpgradeOnTraining(Callback):
 
     def __init__(self, particleWeights, numberOfNeurons):
         self.PWeights = particleWeights
@@ -46,6 +46,15 @@ class WeightsUpgrade(Callback):
     #         print(U_c)
     #         print(U_o)
     #         #layer.set_weights = self.PWeights[newStartPositionOfLayers:allValues] #ONLY UPGRADE THE SPECIFIC WEIGHT VALUES FOR THIS LAYER, AND NOT THE ALL WEIGHTS
+
+    def on_train_begin(self, logs=None):
+
+        '''
+        Main objective of this function is to override the weights of LSTM Layer on training setup, with PSO values
+        Ref: https://datascience.stackexchange.com/questions/26715/keras-lstm-use-weights-from-keras-model-to-replicate-predictions-using-numpy
+        :param logs:
+        :return:
+        '''
 
     def on_train_end(self, logs={}):
         print(logs)
