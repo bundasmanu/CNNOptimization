@@ -135,7 +135,32 @@ def objectiveFunctionPSO(particles, X_train, X_test, Y_train, Y_test):
     LONG SHORT-TERM MEMORY OPTIMIZATION USING PSO (LSTM) --> AFTER THAT I COULD CREATE AN EXAMPLE USING THIS TWO TECHNIQUES SIMULTANEOUSLY
 '''
 
-def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features):
+def separationWeights(particleWeights, neurons, features):
+
+    '''
+    The main objective of this function is to separe a unidimensional array (particle all dimensions) into 2 numpy array's
+    represented respectively the kernel and recurrent matrices
+    :param particleWeights: array of dimensions of particle
+    :param neurons: number of neurons used on LSTM Layer
+    :param features: number of features of problem
+    :return: 2 numpy array's --> one with kernel matrix with shape (features, (neurons * 4)) and second recurrent kernel with shape (neurons, (neurons * 4))
+    '''
+
+    #DEFINITION OF SHAPES OF TWO MATRICES (KERNEL AND RECURRENT MATRICES)
+    shapeKernelMatrix = [features, (neurons * 4)]
+    shapeRecurrentMatrix = [neurons , (neurons * 4)]
+
+    #DIVISION OF PARTICLES WEIGHTS INTO TWO UNIDIMENSIONAL ARRAY'S --> CONSIDERING THE LENGTH OF TWO MATRICES (KERNEL AND RECURRENT MATRICES)
+    unidimensionalKernelMatrix = particleWeights[0: (features * (4 * neurons))] #STARTS ON 0 POSITION AND ENDS ON (features * (4 * neurons))
+    unidimensionalRecurrentMatrix = particleWeights[(features * (4 * neurons)):] #STARTS IN THE FINAL POSITION OF KERNEL MATRIX AND TERMINES ON LAST POSITION OF PARTICLES WEIGHT
+
+    #RESHAPE THIS MATRICES
+    kernelMatrix = unidimensionalKernelMatrix.reshape(shapeKernelMatrix[0], shapeKernelMatrix[1])
+    recurrentMatrix = unidimensionalRecurrentMatrix.reshape(shapeRecurrentMatrix[0], shapeRecurrentMatrix[1])
+
+    return kernelMatrix, recurrentMatrix
+
+def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features, particleWeights):
 
     '''
 
@@ -171,6 +196,8 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     #WHEN RETURN SEQUENCES = TRUE --> OUTPUT IS (#Samples, #Time steps, #NEURONS) AND IS FALSE : (#Samples, #LSTM units)
     #https://www.dlology.com/blog/how-to-use-return_state-or-return_sequences-in-keras/
     #NUMA ARQUITETURA STATEFUL, O Nº DAS AMOSTRAS TEM DE SER DIVISIVEL PELO BATCH SIZE
+
+    #I NEED TO MAKE A SEPARATION BETWEEN THE PARTICLES (PSO) WEIGHTS--> IN TO MATRICES, KERNEL INPUT MATRIX AND RECURRENT KERNEL MATRIX
 
     model = Sequential()
     model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True))
