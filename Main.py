@@ -172,24 +172,25 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     #NUMA ARQUITETURA STATEFUL, O Nº DAS AMOSTRAS TEM DE SER DIVISIVEL PELO BATCH SIZE
 
     model = Sequential()
-    model.add(LSTM(neurons, activation='sigmoid', batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True))
-    model.add(Dropout(0.5))
+    model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True))
+    #model.add(Dropout(0))
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
     model.summary()
     #FITTING MODEL
-    model.fit(x_train, y_train, epochs=1, batch_size=batch_size, shuffle=False)
+    model.fit(x_train, y_train, epochs=5, batch_size=batch_size, shuffle=False)
 
     predictions = model.predict(x_test, batch_size=batch_size)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
 
     # WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
     numberRights = 0
-    for i in range(len(y_test)):
-        indexMaxValue = numpy.argmax(predictions[i], axis=0)
-        if indexMaxValue == numpy.argmax(y_test[i], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
-            numberRights = numberRights + 1
+    for i in range(y_test.shape[0]):
+        for j in range(y_test.shape[1]):
+            indexMaxValue = numpy.argmax(predictions[i][j], axis=0)
+            if indexMaxValue == numpy.argmax(y_test[i][j], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+                numberRights = numberRights + 1
 
-    hitRate = numberRights / len(y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
+    hitRate = numberRights / (y_test.shape[0]*y_test.shape[1])  # HIT PERCENTAGE OF CORRECT PREVISIONS
     print(hitRate)
 
     #LOSS FUNCTION --> THE OBJECTIVE IS TO MINIMIZE THE LOSS, AND BEST ACCURACY'S MINIMIZE'S LOSS --> EXAMPLE: LOSS = (1- 0,8) < LOSS = (1-0,2)
@@ -257,9 +258,9 @@ def main():
     #LINK WITH THIS EXPLANATION --> https://medium.com/@ellery.leung/rnn-lstm-example-with-keras-about-input-shape-94120b0050e
     X, Y, x_train, x_test, y_train, y_test = getDataset(20)  # I NEED TO RESTORE THE DATASET PERCENTAGE, IN ORDER TO FIND A VALUE DIVISIVEL BY TRAIN AND TEST DATASET: 150 SAMPLES --> 120 FOR TRAIN AND 30 FOR TEST, AND WITH A BATCH_SIZE= 30 I CAN DIVIDE FOR THIS TWO DATASET'S
 
-    optimizer = ps.single.GlobalBestPSO(n_particles=20, dimensions=dimensions, options=options) #DEFAULT BOUNDS
+    optimizer = ps.single.GlobalBestPSO(n_particles=1, dimensions=dimensions, options=options) #DEFAULT BOUNDS
 
-    cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=5) #the cost function has yet to be created
+    cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=1) #the cost function has yet to be created
 
 if __name__ == "__main__":
     main()
