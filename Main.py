@@ -6,6 +6,7 @@ import pyswarms as ps
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
 import keras
+import WeightsUpgrade
 
 def getDataset(testSize):
 
@@ -177,8 +178,12 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
     model.summary()
+
+    # INITIALIZATION OF CALLBACK, AND DEFINE THEM IN MODEL FITNESS
+    weightsCallback = WeightsUpgrade.WeightsUpgrade(particleWeights=100, numberOfNeurons=neurons) #PARTICLES WEIGHTS IS TEMPORARY
+
     #FITTING MODEL
-    model.fit(x_train, y_train, epochs=5, batch_size=batch_size, shuffle=False)
+    model.fit(x_train, y_train, epochs=5, batch_size=batch_size, shuffle=False, callbacks=[weightsCallback])#BATCH_SIZE AND SHUFFLE BECAUSE TIME_STEPS DIFFERENT FROM 1
 
     predictions = model.predict(x_test, batch_size=batch_size)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
 
@@ -249,7 +254,7 @@ def main():
     #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
 
     dimensions = 10 #I NEED TO UNDERSTAND SHAPE OF WEIGHT MATRICES https://stackoverflow.com/questions/42861460/how-to-interpret-weights-in-a-lstm-layer-in-keras
-    neurons = 30
+    neurons = 10
     batch_size = 10 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
     time_stemps = 3 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
     data_dimension = 4 #NUMBER OF FEATURES
