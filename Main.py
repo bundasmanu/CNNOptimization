@@ -201,11 +201,11 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     inputParticleWeights, recurrentParticleWeigths = separationWeights(particleWeights, neurons, features)
 
     #DEFINITION OF MY CUSTOM CLASS INITIALIZER OF KERNEL AND RECURRENT WEIGHTS
-    initializer = WeightsInitializer.WeightsInitializer()
+    initializer = WeightsInitializer.WeightsInitializer(inputParticleWeights, recurrentParticleWeigths)
 
     model = Sequential()
     model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True,
-                   kernel_initializer=initializer.initInputMat(inputParticleWeights), recurrent_initializer= initializer.initRecMat(recurrentParticleWeigths)))
+                   kernel_initializer=initializer.initInputMat, recurrent_initializer= initializer.initRecMat))
     #model.add(Dropout(0))
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
@@ -253,7 +253,7 @@ def applyLSTMUsingPSO(particles, x_train, x_test, y_train, y_test, neurons, batc
     '''
 
     nParticles = particles.shape[0]
-    loss = [objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features) for i in range(nParticles)] #FALTA AINDA PASSAR OS DADOS DE UMA PARTICULA, MAS POR AGORA NAO INTERESSA --> 1º NECESSÁRIO COLOCAR O MODELO FUNCIONAL
+    loss = [objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features, particles[i]) for i in range(nParticles)] #FALTA AINDA PASSAR OS DADOS DE UMA PARTICULA, MAS POR AGORA NAO INTERESSA --> 1º NECESSÁRIO COLOCAR O MODELO FUNCIONAL
     return loss
 
 def main():
