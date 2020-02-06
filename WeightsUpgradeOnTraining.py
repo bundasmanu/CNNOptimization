@@ -48,7 +48,8 @@ class WeightsUpgradeOnTraining(Callback):
                 print(U_o)
 
     def on_train_end(self, logs={}):
-        print(logs)
+        #print(logs)
+        return None
 
     def on_batch_end(self, batch, logs=None):
         return None #there is not anything left, if there is a need to update the weights in each batch it may be necessary to override this function, however I think it only makes sense to apply the update of the weights at the beginning of the training and not of each batch

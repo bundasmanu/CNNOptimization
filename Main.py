@@ -185,8 +185,8 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     x_test =  x_test.reshape(examplesWithoutTimeStempsXTest, time_stemps, features)
 
     #RESHAPE TARGETS --> FORMAT: (NumberOfExamples, TimeSteps) --> https://stackoverflow.com/questions/46165464/reshape-keras-input-for-lstm
-    y_train = y_train.reshape(int((len(y_train)/3)), 3) #3 POSSIBLE RESULTS THEN 3 TIME STEMPS
-    y_test = y_test.reshape((int(len(y_test)/3)), 3)
+    y_train = y_train.reshape(int((len(y_train)/(time_stemps))), time_stemps) #3 POSSIBLE RESULTS THEN 3 TIME STEMPS
+    y_test = y_test.reshape((int(len(y_test)/(time_stemps))), time_stemps)
 
     #FINNALY I NEED TO CONVERT THE CLASSES (TARGETS) TO BINARY
     y_train = keras.utils.to_categorical(y_train) #ALREADY MAKE RESHAPE BEFORE, AND NOW I DIDN'T NEED TO REAJUST ARRAY, ONLY NEED TO CONVERT TO BINARY
@@ -204,9 +204,12 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     initializer = WeightsInitializer.WeightsInitializer(inputParticleWeights, recurrentParticleWeigths)
 
     model = Sequential()
-    model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True,
-                   kernel_initializer=initializer.initInputMat, recurrent_initializer= initializer.initRecMat))
-    #model.add(Dropout(0))
+    #I NEED TO USE THIS WHEN TIME STEPS IF GREATER THAN 1 --> RETURN SEQUENCES = TRUE
+    #model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), return_sequences=True, stateful=True,
+    #               kernel_initializer=initializer.initInputMat, recurrent_initializer= initializer.initRecMat))
+    model.add(LSTM(neurons, batch_input_shape=(batch_size, time_stemps, features), #--> WHEN TIME STEPS IS 1 I DON'T USE RETURN SEQUENCES
+                    kernel_initializer=initializer.initInputMat, recurrent_initializer= initializer.initRecMat))
+    model.add(Dropout(0.5))
     model.add(Dense(3)) #3 OUTPUTS
     model.compile(loss='mean_squared_error', optimizer='adam')
     model.summary()
@@ -285,9 +288,9 @@ def main():
     #NEED TO DEFINE INITIAL VALUES OF LSTM (BATCH_SIZE, TIME_STEMP, ...), IN ORDER TO DEFINE THE DIMENSIONS OF PSO --> I CAN CREATE AN PSO OPTIMIZER BEFORE, TO CHECK THIS VALUES, OR DEFINE NEW DIMENSIONS SPECIFIC TO THIS VALUES
     #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
 
-    neurons = 10
+    neurons = 1000
     batch_size = 10 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
-    time_stemps = 3 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
+    time_stemps = 1 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
     data_dimension = 4 #NUMBER OF FEATURES
 
     #DEFINITION OF THE DIMENSIONS OF THE PROBLEM --> REPRESENTS THE WEIGHTS OF LSTM LAYER (KERNEL AND RECURRENT MATRIXES) --> I DIDN'T CONSIDER BIAS HERE
