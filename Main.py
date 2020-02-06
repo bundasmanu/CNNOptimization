@@ -160,6 +160,47 @@ def separationWeights(particleWeights, neurons, features):
 
     return kernelMatrix, recurrentMatrix
 
+def accuracyTimeStempsGreaterThan1(y_test, predictions):
+
+    '''
+    This function is used to calculate accuracy between targets values and lstm predictions
+    this function considers the approach used when timestemps is greater than 1 (resolution is different from = 1)
+    :param y_test: true results of samples
+    :param predictions: predictions that are obtained with lstm model
+    :return: float value, accuracy value
+    '''
+
+    numberRights = 0
+    for i in range(y_test.shape[0]):
+        for j in range(y_test.shape[1]):
+            indexMaxValue = numpy.argmax(predictions[i][j], axis=0)
+            if indexMaxValue == numpy.argmax(y_test[i][j], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+                numberRights = numberRights + 1
+
+    hitRate = numberRights / (y_test.shape[0]*y_test.shape[1])  # HIT PERCENTAGE OF CORRECT PREVISIONS
+
+    return hitRate
+
+def accuracyTimeStempsEqual1(y_test, predictions):
+
+    '''
+    This function is used to calculate accuracy between targets values and lstm predictions
+    this function considers the approach used when timestemps is equal to 1
+    :param y_test: true results of samples
+    :param predictions: predictions that are obtained with lstm model
+    :return: float value, accuracy value
+    '''
+
+    numberRights = 0
+    for i in range(y_test.shape[0]):
+        indexMaxValue = numpy.argmax(predictions[i], axis=0) #MAX VALUE ON LINE
+        if indexMaxValue == numpy.argmax(y_test[i], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+            numberRights = numberRights + 1
+
+    hitRate = numberRights / y_test.shape[0]  # HIT PERCENTAGE OF CORRECT PREVISIONS
+
+    return hitRate
+
 def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features, particleWeights):
 
     '''
@@ -218,20 +259,16 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     weightsCallback = WeightsUpgradeOnTraining.WeightsUpgradeOnTraining(particleWeights=100, numberOfNeurons=neurons) #PARTICLES WEIGHTS IS TEMPORARY
 
     #FITTING MODEL
-    model.fit(x_train, y_train, epochs=5, batch_size=batch_size, shuffle=False, callbacks=[weightsCallback])#BATCH_SIZE AND SHUFFLE BECAUSE TIME_STEPS DIFFERENT FROM 1
+    model.fit(x_train, y_train, epochs=200, batch_size=batch_size, shuffle=False, callbacks=[weightsCallback])#BATCH_SIZE AND SHUFFLE BECAUSE TIME_STEPS DIFFERENT FROM 1
 
     predictions = model.predict(x_test, batch_size=batch_size)  # RETURNS A NUMPY ARRAY WITH PREDICTIONS
 
     # WELL, I NEED TO COMPARE THE PREDICTIONS WITH REAL VALUES
-    numberRights = 0
-    for i in range(y_test.shape[0]):
-        for j in range(y_test.shape[1]):
-            indexMaxValue = numpy.argmax(predictions[i][j], axis=0)
-            if indexMaxValue == numpy.argmax(y_test[i][j], axis=0): #COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
-                numberRights = numberRights + 1
-
-    hitRate = numberRights / (y_test.shape[0]*y_test.shape[1])  # HIT PERCENTAGE OF CORRECT PREVISIONS
-    print(hitRate)
+    hitRate = 0
+    if time_stemps == 1:
+        hitRate = accuracyTimeStempsEqual1(y_test, predictions)
+    else:
+        hitRate = accuracyTimeStempsGreaterThan1(y_test, predictions)
 
     #LOSS FUNCTION --> THE OBJECTIVE IS TO MINIMIZE THE LOSS, AND BEST ACCURACY'S MINIMIZE'S LOSS --> EXAMPLE: LOSS = (1- 0,8) < LOSS = (1-0,2)
     loss = (1- hitRate)
@@ -288,7 +325,7 @@ def main():
     #NEED TO DEFINE INITIAL VALUES OF LSTM (BATCH_SIZE, TIME_STEMP, ...), IN ORDER TO DEFINE THE DIMENSIONS OF PSO --> I CAN CREATE AN PSO OPTIMIZER BEFORE, TO CHECK THIS VALUES, OR DEFINE NEW DIMENSIONS SPECIFIC TO THIS VALUES
     #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
 
-    neurons = 1000
+    neurons = 150
     batch_size = 10 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
     time_stemps = 1 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
     data_dimension = 4 #NUMBER OF FEATURES
