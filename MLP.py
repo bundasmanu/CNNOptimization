@@ -2,7 +2,7 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 
-def mlp(x_train, x_test, y_train, y_test, numberClasses, numberFeatures, batch_size):
+def mlp(x_train, x_test, y_train, y_test, numberClasses, numberFeatures, neurons, batch_size, epochs):
 
     '''
     THIS 4 PARAMETERS ARE ALREADY NORMALIZED (MIN-MAX NORMALIZATION)
@@ -25,9 +25,12 @@ def mlp(x_train, x_test, y_train, y_test, numberClasses, numberFeatures, batch_s
 
         #NOW I NEED TO BUILD MLP MODEL
         model = Sequential()
-        model.add(Dense(100, input_shape=(numberFeatures,))) #FULL CONNECTED LAYER
+        model.add(Dense(neurons, input_shape=(numberFeatures,))) #FULL CONNECTED LAYER
         model.add(Activation('relu')) #ACTIVATION FUNCTION OF FULL CONNECTED LAYER
-        model.add(Dropout(rate=0.2, seed=42)) #LAYER THAT PREVENTS OVERFITTING --> http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf
+        model.add(Dropout(rate=0.1)) #LAYER THAT PREVENTS OVERFITTING --> http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf
+        model.add(Dense(50)) # FULL CONNECTED LAYER 2
+        model.add(Activation('relu'))  # ACTIVATION FUNCTION OF FULL CONNECTED LAYER
+        model.add(Dropout(rate=0.1))
         model.add(Dense(units=numberClasses))
         model.add(Activation('softmax'))
 
@@ -38,7 +41,7 @@ def mlp(x_train, x_test, y_train, y_test, numberClasses, numberFeatures, batch_s
         historyOfModel =model.fit(
             x=x_train,
             y=y_train,
-            epochs=30,
+            epochs=epochs,
             verbose=1, #PROGRESS BAR IS ACTIVE
             batch_size=batch_size,
             validation_split=0.3,

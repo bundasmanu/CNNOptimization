@@ -7,6 +7,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
 import keras
 import WeightsUpgradeOnTraining, WeightsInitializer
+import MLP
 
 def getDataset(testSize):
 
@@ -343,6 +344,30 @@ def main():
     optimizer = ps.single.GlobalBestPSO(n_particles=1, dimensions=dimensions, options=options) #DEFAULT BOUNDS
 
     cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=1) #the cost function has yet to be created
+
+    '''
+        
+        MLP WITHOUT PSO
+        
+    '''
+    #DEFINITION OF VARIABLES TO PASS TO mlp function
+    neurons = 100
+    batch_size = 30
+    features = X.shape[1]
+    classes = 3
+    epochs = 30
+
+    #GET SPLIT OF DATASET --> 80% TRAIN AND 20% PER TEST
+    X, Y, x_train, x_test, y_train, y_test = getDataset(30)
+
+    scores = MLP.mlp(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size, neurons=neurons, numberFeatures=features, numberClasses=classes, epochs=epochs)
+
+    print('Loss: ', scores[0])
+    print('\nAccuracy', scores[1])
+
+    '''
+        CNN WITHOUT PSO
+    '''
 
 if __name__ == "__main__":
     main()
