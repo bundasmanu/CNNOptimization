@@ -118,7 +118,7 @@ def objectiveFunctionPSO(particles, X_train, X_test, Y_train, Y_test):
     the nodes dimension and kernel evaluation. All particles have specific
     values of this two attributes, and the main objetive is to find the best
     combination of this two attributes, minimizing the error of prevision (I
-    considered i simple dataset).
+    considered a simple dataset).
     :param particles: numpy array of shape (nParticles, dimensions)
     :param X_train: array --> samples for train
     :param X_test: array --> samples for test
@@ -226,7 +226,7 @@ def objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size,
     x_test =  x_test.reshape(examplesWithoutTimeStempsXTest, time_stemps, features)
 
     #RESHAPE TARGETS --> FORMAT: (NumberOfExamples, TimeSteps) --> https://stackoverflow.com/questions/46165464/reshape-keras-input-for-lstm
-    y_train = y_train.reshape(int((len(y_train)/(time_stemps))), time_stemps) #3 POSSIBLE RESULTS THEN 3 TIME STEMPS
+    y_train = y_train.reshape(int((len(y_train)/(time_stemps))), time_stemps) #3 POSSIBLE RESULTS PER TIME STEMPS
     y_test = y_test.reshape((int(len(y_test)/(time_stemps))), time_stemps)
 
     #FINNALY I NEED TO CONVERT THE CLASSES (TARGETS) TO BINARY
