@@ -19,7 +19,7 @@ def mlp(x_train, x_test, y_train, y_test, numberClasses, numberFeatures, neurons
 
         #I DONT NEED TO RESHAPE DATA BECAUSE --> THIS DATASET IS NOT 2D (LIKE IMAGES)
 
-        #BUT I NEED TO CONVERT TARGETS INTO BINARY CLASS, TO PUT THE TARGETS INTO SAME RANGE OF ACTIVATION FUNCTIONS LIKE: SOFTMAX OR SIGMOID
+        #BUT I NEED TO CONVERT TARGETS INTO BINARY CLASS, TO PUT THE TARGETS INTO SAME RANGE OF ACTIVATION OF FUNCTIONS LIKE: SOFTMAX OR SIGMOID
         y_train = keras.utils.to_categorical(y_train, numberClasses)
         y_test = keras.utils.to_categorical(y_test, numberClasses)
 

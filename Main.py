@@ -8,6 +8,7 @@ from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
 import keras
 import WeightsUpgradeOnTraining, WeightsInitializer
 import MLP
+import CNN
 
 def getDataset(testSize):
 
@@ -357,7 +358,7 @@ def main():
     classes = 3
     epochs = 30
 
-    #GET SPLIT OF DATASET --> 80% TRAIN AND 20% PER TEST
+    #GET SPLIT OF DATASET --> 70% TRAIN AND 30% PER TEST
     X, Y, x_train, x_test, y_train, y_test = getDataset(30)
 
     scores = MLP.mlp(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size, neurons=neurons, numberFeatures=features, numberClasses=classes, epochs=epochs)
@@ -368,6 +369,20 @@ def main():
     '''
         CNN WITHOUT PSO
     '''
+
+    #DEFINITION OF VALUES OF PARAMETERS
+    nFilters = 200
+    batch_size = 5
+    epochs = 30 #n value = 6 --> (epochs/batch_size) = 30/5 = 6
+    kernel_size = (3,)#TUPLE OF ONE INTEGER, COULD BE ALSO A SINGLE INTEGER
+    #STRIDE IF I WANT I CAN OVERRIDE THIS VALUE BY DEFAULT IS 1 ON PARAMETER OF cnn function
+
+    #GET SPLIT OF DATASET --> 70% TRAIN AND 30% PER TEST
+    X, Y, x_train, x_test, y_train, y_test = getDataset(30)
+
+    score = CNN.cnn(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, filters=nFilters, batch_size=batch_size, epochs=epochs, kernel_size=kernel_size)
+
+    print('\nAccuracy: ', score)
 
 if __name__ == "__main__":
     main()
