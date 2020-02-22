@@ -35,13 +35,14 @@ def cnn(x_train, x_test, y_train, y_test ,batch_size, epochs, filters, kernel_si
         y_train = keras.utils.to_categorical(y_train, 3)
         y_test = keras.utils.to_categorical(y_test, 3)
 
+        #EXPLANATION BETWEEN PADDING SAME AND VALID: https://stackoverflow.com/questions/37674306/what-is-the-difference-between-same-and-valid-padding-in-tf-nn-max-pool-of-t
         #MODEL CREATION
         input_shape = (x_train.shape[1], 1)
         model = Sequential()
-        model.add(Conv1D(filters=filters, kernel_size=kernel_size, input_shape=input_shape, padding='same')) #FIRST CNN
+        model.add(Conv1D(filters=filters, kernel_size=kernel_size, input_shape=input_shape, padding='valid')) #FIRST CNN
         model.add(Activation('relu'))
         model.add(BatchNormalization())
-        model.add(MaxPooling1D()) #I maintain the default value -->  max pool matrix (2.2)
+        model.add(MaxPooling1D(padding='same')) #I maintain the default value -->  max pool matrix (2.2)
         model.add(Flatten())
         model.add(Dense(3))#FULL CONNECTED LAYER --> OUTPUT LAYER 3 OUTPUTS
         model.add(Activation('softmax'))
@@ -63,11 +64,19 @@ def cnn(x_train, x_test, y_train, y_test ,batch_size, epochs, filters, kernel_si
         print(predict)
         print(y_test)
 
-        predict = (predict == predict.max(axis=1)[:,None]).astype(int)
+        predict = (predict == predict.max(axis=1)[:, None]).astype(int)
         print(predict)
-        acc = (predict == y_test).mean()
 
-        return acc
+        numberRights = 0
+        for i in range(len(y_test)):
+            indexMaxValue = numpy.argmax(predict[i], axis=0)
+            if indexMaxValue == numpy.argmax(y_test[i],
+                                             axis=0):  # COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+                numberRights = numberRights + 1
+
+        hitRate = numberRights / len(y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
+
+        return hitRate
 
     except:
         raise

@@ -374,7 +374,7 @@ def main():
     nFilters = 200
     batch_size = 5
     epochs = 30 #n value = 6 --> (epochs/batch_size) = 30/5 = 6
-    kernel_size = (3,)#TUPLE OF ONE INTEGER, COULD BE ALSO A SINGLE INTEGER
+    kernel_size = (4,)#TUPLE OF ONE INTEGER, COULD BE ALSO A SINGLE INTEGER
     #STRIDE IF I WANT I CAN OVERRIDE THIS VALUE BY DEFAULT IS 1 ON PARAMETER OF cnn function
 
     #GET SPLIT OF DATASET --> 70% TRAIN AND 30% PER TEST
