@@ -1,8 +1,16 @@
 import keras
 from keras.models import Sequential
-from keras.layers import Activation, LSTM, Dense, Flatten, Dropout
+from keras.layers import Activation, LSTM, Dense, Flatten, Dropout, Bidirectional
 import numpy
 
+#REF
+#https://stats.stackexchange.com/questions/365428/difference-between-a-single-unit-lstm-and-3-unit-lstm-neural-network --> VERY GOOD EXPLANATION
+#https://stats.stackexchange.com/questions/179101/structure-of-recurrent-neural-network-lstm-gru
+#EXPLANATION TIMESTEP AND FEATURES INPUT_SHAPE --> https://datascience.stackexchange.com/questions/33393/understanding-input-of-lstm
+#https://datascience.stackexchange.com/questions/25463/questions-about-lstm-cells-units-and-inputs
+#https://www.quora.com/What-is-the-relationship-between-timestep-and-number-hidden-unit-in-LSTM
+#https://heartbeat.fritz.ai/a-beginners-guide-to-implementing-long-short-term-memory-networks-lstm-eb7a2ff09a27
+#https://govind.tech/understanding-stateful-option-in-keras-lstm/ --> LINK MUITO UTIL
 def lstm(x_train, x_test, y_train, y_test, neurons, batch_size, epochs):
 
     '''
@@ -29,10 +37,12 @@ def lstm(x_train, x_test, y_train, y_test, neurons, batch_size, epochs):
 
         #MODEL CREATION
         model = Sequential()
+        #batch_input_shape = (batch_size, x_train.shape[1], 1)
         input_shape = (x_train.shape[1], 1)
         model.add(LSTM(neurons, input_shape=input_shape, stateful=False, return_sequences=False))#STATEFUL = FALSE, BECAUSE NO DEPENDENCY BETWEEN DATA, AND RETURN SEQUENCES = FALSE, BECAUSE NOW I DON'T NEED TO CREATE A STACKED LSTM
         model.add(Activation('relu'))
         model.add(Dropout(0.2))
+        #model.add(Flatten())
         model.add(Dense(3))
         model.add(Activation('softmax'))
         model.summary()
@@ -47,6 +57,7 @@ def lstm(x_train, x_test, y_train, y_test, neurons, batch_size, epochs):
             y=y_train,
             batch_size=batch_size,
             epochs=epochs,
+            shuffle=False #IF I USE STATEFUL MODE, THIS PARAMETER NEEDS TO BE EQUALS TO FALSE
         )
 
         predict = model.predict(x=x_test, batch_size=batch_size)

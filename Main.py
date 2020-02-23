@@ -389,9 +389,9 @@ def main():
         LSTM WITHOUT PSO
     '''
 
-    neurons = 100
+    neurons = 50
     batch_size = 5
-    epochs = 60
+    epochs = 30
 
     #DEFINITION OF TRAINING AND TEST DATASET
     X, Y, x_train, x_test, y_train, y_test = getDataset(30)
