@@ -8,6 +8,7 @@ import numpy
 #https://stackoverflow.com/questions/44978768/how-do-i-shape-my-input-data-for-use-with-conv1d-in-keras --> best explanation
 #BATCH_NORMALIZATION FITS BETTER ON CNN THAN DROPOUT --> https://www.kdnuggets.com/2018/09/dropout-convolutional-networks.html
 #GOOD REF: https://issue.life/questions/43235531
+#INPUT SHAPE IRIS EXPLANATION: https://datascience.stackexchange.com/questions/36106/input-shape-of-dataset-in-cnn
 def cnn(x_train, x_test, y_train, y_test ,batch_size, epochs, filters, kernel_size, stride=1):
 
     '''
@@ -21,7 +22,7 @@ def cnn(x_train, x_test, y_train, y_test ,batch_size, epochs, filters, kernel_si
     :param filters: integer --> dimensionality of output space(number of output filters in the convolution)
     :param kernel_size: integer of tuple with only one integer (integer, ) --> length of convolution window
     :param stride: by default=1, integer represents stride length of convolution
-    :return: score of model (loss , accuracy) --> bidimensional array [1,2]
+    :return: score of model: accuracy
     '''
 
     try:
@@ -42,7 +43,7 @@ def cnn(x_train, x_test, y_train, y_test ,batch_size, epochs, filters, kernel_si
         model.add(Conv1D(filters=filters, kernel_size=kernel_size, input_shape=input_shape, padding='valid')) #FIRST CNN
         model.add(Activation('relu'))
         model.add(BatchNormalization())
-        model.add(MaxPooling1D(padding='same')) #I maintain the default value -->  max pool matrix (2.2)
+        model.add(MaxPooling1D(strides=1, padding='same')) #I maintain the default value -->  max pool matrix (2.2)
         model.add(Flatten())
         model.add(Dense(3))#FULL CONNECTED LAYER --> OUTPUT LAYER 3 OUTPUTS
         model.add(Activation('softmax'))

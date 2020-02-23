@@ -9,6 +9,7 @@ import keras
 import WeightsUpgradeOnTraining, WeightsInitializer
 import MLP
 import CNN
+import LSTM_Model
 
 def getDataset(testSize):
 
@@ -371,9 +372,9 @@ def main():
     '''
 
     #DEFINITION OF VALUES OF PARAMETERS
-    nFilters = 200
+    nFilters = 12
     batch_size = 5
-    epochs = 30 #n value = 6 --> (epochs/batch_size) = 30/5 = 6
+    epochs = 15 #n value = 6 --> (epochs/batch_size) = 30/5 = 6
     kernel_size = (4,)#TUPLE OF ONE INTEGER, COULD BE ALSO A SINGLE INTEGER
     #STRIDE IF I WANT I CAN OVERRIDE THIS VALUE BY DEFAULT IS 1 ON PARAMETER OF cnn function
 
@@ -381,6 +382,21 @@ def main():
     X, Y, x_train, x_test, y_train, y_test = getDataset(30)
 
     score = CNN.cnn(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, filters=nFilters, batch_size=batch_size, epochs=epochs, kernel_size=kernel_size)
+
+    print('\nAccuracy: ', score)
+
+    '''
+        LSTM WITHOUT PSO
+    '''
+
+    neurons = 100
+    batch_size = 5
+    epochs = 60
+
+    #DEFINITION OF TRAINING AND TEST DATASET
+    X, Y, x_train, x_test, y_train, y_test = getDataset(30)
+
+    score = LSTM_Model.lstm(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, neurons=neurons, batch_size=batch_size, epochs=epochs)
 
     print('\nAccuracy: ', score)
 
