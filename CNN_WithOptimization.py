@@ -67,6 +67,21 @@ def particleIteration(particles, x_train, x_test, y_train, y_test ,batch_size, k
 
 def callCNNOptimization(x_train, x_test, y_train, y_test ,batch_size, kernel_size, numberParticles, iterations, stride=1):
 
+    '''
+    This is the function that defines all PSO context and calls loss function for every particles (fill all iterations)
+    :param x_train: samples used in train
+    :param x_test: samples used in test
+    :param y_train: targets used in train
+    :param y_test:  targets used in test
+    :param batch_size: integer that represents batch size
+    :param kernel_size: integer of tuple with only one integer (integer, ) --> length of convolution window
+    :param stride: by default=1, integer represents stride length of convolution
+    :param numberParticles: integer --> number of particles of swarm
+    :param iterations: integer --> number of iterations
+    :return cost: integer --> minimum loss
+    :return pos: numpy array with n dimensions --> [filterValue, epochValue], with best cost (minimum cost)
+    '''
+
     try:
 
         #DEFINITION OF PSO PARAMETERS
@@ -88,7 +103,7 @@ def callCNNOptimization(x_train, x_test, y_train, y_test ,batch_size, kernel_siz
         #GET BEST COST AND PARTICLE POSITION
         cost, pos = optimizer.optimize(objective_func=particleIteration, x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test,
                                        batch_size=batch_size, kernel_size=kernel_size, stride=stride, iters=iterations)
-        
+
         return cost, pos
 
     except:
