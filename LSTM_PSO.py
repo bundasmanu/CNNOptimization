@@ -95,7 +95,7 @@ def applyLSTM_PSO(x_train, x_test, y_train, y_test, batch_size, numberParticles,
 
         #PSO OPTIMIZATION PASSING LOOP PARTICLES ITERATION FUNCTION particlesLoop, applying lstm for all particle in all iterations
         cost, pos = optimizer.optimize(particlesLoop, x_train=x_train, x_test=x_test, y_train=y_train,
-                                       y_test=y_test, batch_size=batch_size ,iters=iterations)
+                                       y_test=y_test, batch_size=batch_size,iters=iterations)
 
         return cost, pos, optimizer
 

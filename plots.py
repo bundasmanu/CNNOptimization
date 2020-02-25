@@ -20,7 +20,7 @@ def plotCostHistory(optimizer):
     except:
         raise
 
-def plotPositionHistory(optimizer, xLimits, yLimits, filename):
+def plotPositionHistory(optimizer, xLimits, yLimits, filename, xLabel, yLabel):
 
     '''
 
@@ -28,11 +28,13 @@ def plotPositionHistory(optimizer, xLimits, yLimits, filename):
     :param xLimits: numpy array (minLimit, maxLimit) of x Axis
     :param yLimits: numpy array (minLimit, maxLimit) of y Axis
     :param filename: name of filename returned by plot_contour (html gif)
+    :param xLabel: name of X axis
+    :param yLabel: name of Y axis
     '''
 
     try:
 
-        d = Designer(limits=[xLimits, yLimits], label=[config.X_LABEL, config.Y_LABEL])
+        d = Designer(limits=[xLimits, yLimits], label=[xLabel, yLabel])
         animation = plot_contour(pos_history=optimizer.pos_history,
                      designer=d)
 

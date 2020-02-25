@@ -444,7 +444,8 @@ def main():
     yPlotLimits = numpy.ones(2)
     yPlotLimits[1] = maxBound[1] #MAX VALUE OF EPOCHS AXIS IS 401 (Y AXIS)
     filename = 'particlesHistoryPlot.html'
-    plots.plotPositionHistory(optimizer=optimizer, xLimits=xPlotLimits, yLimits=yPlotLimits, filename=filename)
+    plots.plotPositionHistory(optimizer=optimizer, xLimits=xPlotLimits, yLimits=yPlotLimits,
+                              xLabel=config.X_LABEL_FILTERS, yLabel=config.Y_LABEL_EPOCHS ,filename=filename)
 
     '''
         LSTM WITH PSO
@@ -461,7 +462,7 @@ def main():
     #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
     minBounds = numpy.ones(2)
     maxBounds = numpy.ones(2)
-    maxBound[0] = 251 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
+    maxBounds[0] = 251 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
     maxBounds[1] = 201
     bounds = (minBounds, maxBounds)
 
@@ -481,7 +482,8 @@ def main():
     #PLOT GRAPHICS ILLUSTRATING THE COST VARIATION AND PARTICLES MOVEMENT AND CONVERGENCE
     plots.plotCostHistory(optimizer=optimizer)
     plots.plotPositionHistory(optimizer=optimizer, xLimits=(minBounds[0], maxBounds[0]),
-                              yLimits=(minBounds[1], maxBounds[1]), filename='lstmParticlesPosConvergence')
+                              yLimits=(minBounds[1], maxBounds[1]), filename='lstmParticlesPosConvergence.html',
+                              xLabel=config.X_LABEL_NEURONS, yLabel=config.Y_LABEL_EPOCHS)
 
 if __name__ == "__main__":
     main()
