@@ -63,7 +63,8 @@ def particleIteration(particles, x_train, x_test, y_train, y_test ,batch_size, k
         allLosses = [optimizeCNN(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
                                   kernel_size=kernel_size, particleDimensions=particles[i], stride=stride)for i in range(numberParticles)]
 
-        return allLosses
+        return allLosses#NEED TO RETURN THIS PYSWARMS NEED THIS
+
     except:
         raise
 

@@ -13,7 +13,7 @@ import LSTM_Model
 import CNN_WithOptimization
 import plots
 import config
-import matplotlib.pyplot as plt
+import LSTM_PSO
 
 def getDataset(testSize):
 
@@ -445,6 +445,43 @@ def main():
     yPlotLimits[1] = maxBound[1] #MAX VALUE OF EPOCHS AXIS IS 401 (Y AXIS)
     filename = 'particlesHistoryPlot.html'
     plots.plotPositionHistory(optimizer=optimizer, xLimits=xPlotLimits, yLimits=yPlotLimits, filename=filename)
+
+    '''
+        LSTM WITH PSO
+    '''
+
+    #DEFINITION OF LSTM PARAMETERS, EPOCHS AND NEURONS ARE DEFINED BY PSO
+    batch_size = 5
+
+    #DEFINITION OF PSO PARAMETERS
+    numberParticles = 20
+    iterations = 10
+    dimensions = 2 # [0] --> NEURONS , [1] --> EPOCHS
+
+    #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
+    minBounds = numpy.ones(2)
+    maxBounds = numpy.ones(2)
+    maxBound[0] = 251 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
+    maxBounds[1] = 201
+    bounds = (minBounds, maxBounds)
+
+    #DEFINITION OF DIFFERENT TOPOLOGIES OPTIONS
+    lbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2}
+    lbest_kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : lbest_options}
+    gbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9}
+    gbest_kwargs = {config.TYPE : config.GLOBAL_BEST, config.OPTIONS : gbest_options}
+
+    #PASSING ALL THIS OPTIONS TO LSTM_PSO applyLSTM_PSO FUNCTION
+    cost, pos, optimizer = LSTM_PSO.applyLSTM_PSO(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
+                                                  numberParticles=numberParticles, iterations=iterations, dimensions=dimensions,
+                                                  bounds=bounds, **lbest_kwargs)
+    print(cost)
+    print(pos)
+
+    #PLOT GRAPHICS ILLUSTRATING THE COST VARIATION AND PARTICLES MOVEMENT AND CONVERGENCE
+    plots.plotCostHistory(optimizer=optimizer)
+    plots.plotPositionHistory(optimizer=optimizer, xLimits=(minBounds[0], maxBounds[0]),
+                              yLimits=(minBounds[1], maxBounds[1]), filename='lstmParticlesPosConvergence')
 
 if __name__ == "__main__":
     main()
