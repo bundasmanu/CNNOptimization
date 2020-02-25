@@ -1,6 +1,8 @@
 import pyswarms
 import numpy
 import CNN as CNN_Approach
+import config
+import matplotlib.pyplot as plt
 
 #I USE PSO IN ORDER TO OPTIMIZE TWO PARAMETERS:
     #NUMBER OF FILTERS USED ON CONVOLUTION LAYERS
@@ -33,8 +35,8 @@ def optimizeCNN(x_train, x_test, y_train, y_test ,batch_size, kernel_size, parti
 
         #APPLY LOST FUNCTION --> THE MAIN OBJECTIVE IS TO MINIMIZE LOSS --> MAXIMIZE ACCURACY AND AT SAME TIME MINIMIZE THE NUMBER OF EPOCHS
                                 #AND FILTERS, TO REDUCE TIME AND COMPUTACIONAL POWER
-        loss = 1.0 * ((1.0 - (1.0/numberFilters)) + (1.0 - (1.0/numberEpochs))) + 2.0 * (1.0 - accuracy)
-
+        loss = 1.5 * ((1.0 - (1.0/numberFilters)) + (1.0 - (1.0/numberEpochs))) + 2.0 * (1.0 - accuracy)
+        print(accuracy)
         return loss
 
     except:
@@ -59,13 +61,13 @@ def particleIteration(particles, x_train, x_test, y_train, y_test ,batch_size, k
 
         numberParticles = particles.shape[0]
         allLosses = [optimizeCNN(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
-                                  kernel_size=kernel_size, particles=particles[i], stride=stride)for i in range(numberParticles)]
+                                  kernel_size=kernel_size, particleDimensions=particles[i], stride=stride)for i in range(numberParticles)]
 
         return allLosses
     except:
         raise
 
-def callCNNOptimization(x_train, x_test, y_train, y_test ,batch_size, kernel_size, numberParticles, iterations, stride=1):
+def callCNNOptimization(x_train, x_test, y_train, y_test ,batch_size, kernel_size, numberParticles, iterations, bounds ,stride=1, **kwargs):
 
     '''
     This is the function that defines all PSO context and calls loss function for every particles (fill all iterations)
@@ -78,33 +80,35 @@ def callCNNOptimization(x_train, x_test, y_train, y_test ,batch_size, kernel_siz
     :param stride: by default=1, integer represents stride length of convolution
     :param numberParticles: integer --> number of particles of swarm
     :param iterations: integer --> number of iterations
+    :param bounds: numpy array (minBound, maxBound) --> minBound: numpyArray - shape(dimensions), maxBound: numpyArray - shape(dimensions)
     :return cost: integer --> minimum loss
     :return pos: numpy array with n dimensions --> [filterValue, epochValue], with best cost (minimum cost)
+    :return optimizer: SWARM Optimization Optimizer USED IN DEFINITION AND OPTIMIZATION OF PSO
     '''
 
     try:
 
-        #DEFINITION OF PSO PARAMETERS
-        options = {'c1' : 0.3, 'c2' : 0.2, 'w' : 0.9}
+        #GET PSO PARAMETERS
+        psoType = kwargs.get(config.TYPE)
+        options = kwargs.get(config.OPTIONS)
 
         #DIMENSIONS OF PROBLEM
         dimensions = 2
 
-        #DEFINITION OF BOUNDS
-        minBound = numpy.ones(2) #MIN BOUND FOR TWO DIMENSIONS IS 1
-        maxBound = numpy.ones(2) #ONLY INITIALIZATION
-        maxBound[0] = 601 #MAX NUMBER OF FILTERS
-        maxBound[1] = 401 #MAX NUMBER OF EPOCHS
-        bounds = (minBound , maxBound)
-
         #OPTIMIZER FUNCTION
-        optimizer = pyswarms.single.LocalBestPSO(n_particles=numberParticles, dimensions=dimensions,
-                                                 options=options, bounds=bounds)
+        if psoType == config.GLOBAL_BEST:
+            optimizer = pyswarms.single.GlobalBestPSO(n_particles=numberParticles, dimensions=dimensions,
+                                                     options=options, bounds=bounds)
+        elif psoType == config.LOCAL_BEST:
+            optimizer = pyswarms.single.LocalBestPSO(n_particles=numberParticles, dimensions=dimensions,
+                                                     options=options, bounds=bounds)
+        else:
+            raise AttributeError
         #GET BEST COST AND PARTICLE POSITION
         cost, pos = optimizer.optimize(objective_func=particleIteration, x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test,
                                        batch_size=batch_size, kernel_size=kernel_size, stride=stride, iters=iterations)
 
-        return cost, pos
+        return cost, pos, optimizer
 
     except:
         raise

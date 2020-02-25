@@ -1,37 +1,45 @@
 from pyswarms.utils.plotters import plot_cost_history, plot_contour, plot_surface
 from pyswarms.utils.plotters.formatters import Mesher, Animator
 from pyswarms.utils.plotters.formatters import Designer
+import matplotlib.pyplot as plt
+from IPython.display import Image
+import config
 
 def plotCostHistory(optimizer):
 
     '''
 
     :param optimizer: optimizer object returned in the application/definition of PSO
-    :return: matplotlib object --> cost 2d plot
     '''
 
     try:
 
-        plot = plot_cost_history(cost_history=optimizer.cost_history)
+        plot_cost_history(cost_history=optimizer.cost_history)
 
-        return plot
+        plt.show()
     except:
         raise
 
-def plotPositionHistory(optimizer):
+def plotPositionHistory(optimizer, xLimits, yLimits, filename):
 
     '''
 
     :param optimizer: optimizer object returned in the application/definition of PSO
-    :return: matplotlib object --> position 2d plot
+    :param xLimits: numpy array (minLimit, maxLimit) of x Axis
+    :param yLimits: numpy array (minLimit, maxLimit) of y Axis
+    :param filename: name of filename returned by plot_contour (html gif)
     '''
 
     try:
 
-        plot = plot_contour(pos_history=optimizer.pos_history,
-                            mark=(0,0))#BEST POSSIBLE POSITION MARK (* --> IN GRAPHIC)
+        d = Designer(limits=[xLimits, yLimits], label=[config.X_LABEL, config.Y_LABEL])
+        animation = plot_contour(pos_history=optimizer.pos_history,
+                     designer=d)
 
-        return plot
+        animation.save(filename, writer='ffmpeg', fps=10)
+        Image(url=filename)
+
+        plt.show()
     except:
         raise
 

@@ -10,6 +10,10 @@ import WeightsUpgradeOnTraining, WeightsInitializer
 import MLP
 import CNN
 import LSTM_Model
+import CNN_WithOptimization
+import plots
+import config
+import matplotlib.pyplot as plt
 
 def getDataset(testSize):
 
@@ -344,7 +348,7 @@ def main():
     X, Y, x_train, x_test, y_train, y_test = getDataset(20)  # I NEED TO RESTORE THE DATASET PERCENTAGE, IN ORDER TO FIND A VALUE DIVISIVEL BY TRAIN AND TEST DATASET: 150 SAMPLES --> 120 FOR TRAIN AND 30 FOR TEST, AND WITH A BATCH_SIZE= 30 I CAN DIVIDE FOR THIS TWO DATASET'S
 
     optimizer = ps.single.GlobalBestPSO(n_particles=1, dimensions=dimensions, options=options) #DEFAULT BOUNDS
-    
+
     cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=1) #the cost function has yet to be created
 
     '''
@@ -399,6 +403,48 @@ def main():
     score = LSTM_Model.lstm(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, neurons=neurons, batch_size=batch_size, epochs=epochs)
 
     print('\nAccuracy: ', score)
+
+    '''
+        CNN WITH PSO
+    '''
+
+    #DEFINITION OF CNN PARAMETERS
+    batch_size = 5
+    kernel_size = (4,)
+    stride = 1
+    #EPOCHS AND FILTERS ARE DEFINED BY PARTICLES
+
+    #DEFINITION OF PSO PARAMETERS
+    numberParticles = 20
+    iterations = 10
+
+    minBound = numpy.ones(2)  # MIN BOUND FOR TWO DIMENSIONS IS 1
+    maxBound = numpy.ones(2)  # ONLY INITIALIZATION
+    maxBound[0] = 601  # MAX NUMBER OF FILTERS
+    maxBound[1] = 401  # MAX NUMBER OF EPOCHS
+    bounds = (minBound, maxBound)
+
+    options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2 }
+    #options = {config.C1: 0.3, config.C2: 0.2, config.INERTIA: 0.9}
+    kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : options}
+    #kwargs = {config.TYPE: config.GLOBAL_BEST, config.OPTIONS: options}
+
+    cost, pos, optimizer = CNN_WithOptimization.callCNNOptimization(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
+                                                         kernel_size=kernel_size, numberParticles=numberParticles, iterations=iterations,
+                                                         bounds=bounds, stride=stride, **kwargs)
+
+    print(cost)
+    print(pos)
+
+    #PLOT'S
+    plots.plotCostHistory(optimizer=optimizer)
+
+    xPlotLimits = numpy.ones(2)
+    xPlotLimits[1] = maxBound[0] #MAX VALUE OF FILTER AXIS IS 601 (X AXIS)
+    yPlotLimits = numpy.ones(2)
+    yPlotLimits[1] = maxBound[1] #MAX VALUE OF EPOCHS AXIS IS 401 (Y AXIS)
+    filename = 'particlesHistoryPlot.html'
+    plots.plotPositionHistory(optimizer=optimizer, xLimits=xPlotLimits, yLimits=yPlotLimits, filename=filename)
 
 if __name__ == "__main__":
     main()
