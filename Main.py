@@ -14,6 +14,9 @@ import CNN_WithOptimization
 import plots
 import config
 import LSTM_PSO
+import os
+#os.environ['TF_CPP_MIN_LOG_LEVEL']='2' #MAKES MORE FASTER THE INITIAL SETUP OF GPU --> WARNINGS INITIAL STEPS IS MORE QUICKLY
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"  #THIS LINE DISABLES GPU OPTIMIZATION
 
 def getDataset(testSize):
 
@@ -415,8 +418,8 @@ def main():
     #EPOCHS AND FILTERS ARE DEFINED BY PARTICLES
 
     #DEFINITION OF PSO PARAMETERS
-    numberParticles = 20
-    iterations = 10
+    numberParticles = 8
+    iterations = 2
 
     minBound = numpy.ones(2)  # MIN BOUND FOR TWO DIMENSIONS IS 1
     maxBound = numpy.ones(2)  # ONLY INITIALIZATION
