@@ -14,9 +14,11 @@ import CNN_WithOptimization
 import plots
 import config
 import LSTM_PSO
+from operator import itemgetter
 import os
 #os.environ['TF_CPP_MIN_LOG_LEVEL']='2' #MAKES MORE FASTER THE INITIAL SETUP OF GPU --> WARNINGS INITIAL STEPS IS MORE QUICKLY
 os.environ["CUDA_VISIBLE_DEVICES"]="-1"  #THIS LINE DISABLES GPU OPTIMIZATION
+from keras.datasets import cifar10
 
 def getDataset(testSize):
 
@@ -355,9 +357,9 @@ def main():
     cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=1) #the cost function has yet to be created
 
     '''
-        
+
         MLP WITHOUT PSO
-        
+
     '''
     #DEFINITION OF VARIABLES TO PASS TO mlp function
     neurons = 100
@@ -487,6 +489,79 @@ def main():
     plots.plotPositionHistory(optimizer=optimizer, xLimits=(minBounds[0], maxBounds[0]),
                               yLimits=(minBounds[1], maxBounds[1]), filename='lstmParticlesPosConvergence.html',
                               xLabel=config.X_LABEL_NEURONS, yLabel=config.Y_LABEL_EPOCHS)
+
+    '''###############################################################################
+    #                                                                                #   
+    #                          CIFAR - 10 OPTIMIZATION                               #
+    #                          CONV_2D - PSO OPTIMIZATION                            #
+    #      FOR THIS PROBLEM I ONLY CONSIDER 4 CLASSES (CATS, DOGS, FROGS, HORSES)    #  
+    #   OFFICIAL EXPLANATION OF CIFAR-10: http://www.cs.toronto.edu/~kriz/cifar.html #
+    #                                                                                #
+    '''###############################################################################
+
+    #GET DATA
+    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+
+    '''
+        TRAINING DATA HAS 5 BATCHES --> FOR EVERY BATCH I RETRIEVE 20 IMAGES OF EACH CLASS--> TOTAL OF 100 PER CLASS
+        AS IN TEST DATASET, there is only one batch, so just get 25 samples per class (100 AT ALL)
+        FROG CLASS - 6
+        DOG CLASS - 5
+        CAT CLASS - 3
+        HORSE CLASS - 7
+    '''
+
+    #GET ALL INDICES OF CLASSES THAT I DON'T NEED--> FIRST GET POSITIONS TO DELETE AND THEM DELETE THIS OCORRENCES
+    values = [0, 1, 2, 4, 8, 9] #INDICES CLASSES TO REMOVE
+    deleted_Train_Positions = [i for i in range(y_train.shape[0]) if y_train[i] in values]
+    deleted_Test_Positions = [i for i in range(y_test.shape[0]) if y_test[i] in values]
+
+    #GEL ONLY CLASSES THAT I NEED, AND AFTER THAT I NEED TO CONVERT AGAIN TO NUMPY ARRAY
+    x_train = [x_train[i] for i in range(x_train.shape[0]) if i not in deleted_Train_Positions]
+    x_train = numpy.array(x_train)
+    y_train = [y_train[i] for i in range(y_train.shape[0]) if i not in deleted_Train_Positions]
+    y_train = numpy.array(y_train)
+    x_test = [x_test[i] for i in range(x_test.shape[0]) if i not in deleted_Test_Positions]
+    x_test = numpy.array(x_test)
+    y_test = [y_test[i] for i in range(y_test.shape[0]) if i not in deleted_Test_Positions]
+    y_test = numpy.array(y_test)
+
+    #NOW I NEED TO GET ONLY FEW CLASS PER CLASS (100 samples per class for train) and (20 samples per class for test)
+    howManyValuesPerClass_Train = [100, 100, 100, 0, 100, 0, 0, 0, 100, 100] #INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
+    howManyValuesPerClass_Test = [20, 20, 20, 0, 20, 0, 0, 0, 20, 20]  # INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
+    selectedIndexes_Train = numpy.array([])
+    selectedIndexes_Test = numpy.array([])
+
+    for i, j in zip(range(y_train.shape[0]), range(y_test.shape[0])):
+        if y_train[i][0] not in values: #IF IT'S A ALLOWED CLASS
+            if howManyValuesPerClass_Train[y_train[i][0]] < 100: #ONLY ACCEPTS UNTIL 100
+                selectedIndexes_Train = numpy.append(selectedIndexes_Train, i) #ADD POSITION TO SELECTED_INDEXES
+                howManyValuesPerClass_Train[y_train[i][0]] = howManyValuesPerClass_Train[y_train[i][0]] + 1
+        if y_test[j][0] not in values:
+            if howManyValuesPerClass_Test[y_test[j][0]] < 20:
+                selectedIndexes_Test = numpy.append(selectedIndexes_Test, j)
+                howManyValuesPerClass_Test[y_test[j][0]] = howManyValuesPerClass_Test[y_test[j][0]] + 1
+
+    #SELECT ONLY INDEXES IDENTIFIED BEFORE, FOR TRAIN AND TEST
+    x_train = [x_train[i] for i in range(selectedIndexes_Train.shape[0])]
+    x_train = numpy.array(x_train)
+    y_train = [y_train[i] for i in range(selectedIndexes_Train.shape[0])]
+    y_train = numpy.array(y_train)
+    x_test = [x_test[i] for i in range(selectedIndexes_Test.shape[0])]
+    x_test = numpy.array(x_test)
+    y_test = [y_test[i] for i in range(selectedIndexes_Test.shape[0])]
+    y_test = numpy.array(y_test)
+
+    #CHECK SHAPE OF DATA
+    print(x_train.shape)
+    print(y_train.shape)
+    print(x_test.shape)
+    print(y_test.shape)
+
+    #print
+    print("howManyValuesPerClass_Train\n", howManyValuesPerClass_Train)
+    print("howManyValuesPerClass_Test\n", howManyValuesPerClass_Test)
+    print(selectedIndexes_Test[0:10])
 
 if __name__ == "__main__":
     main()
