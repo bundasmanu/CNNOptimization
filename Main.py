@@ -1,7 +1,7 @@
 import sklearn.datasets as datasets
 from sklearn.model_selection import train_test_split
 import numpy
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import pyswarms as ps
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
@@ -526,6 +526,11 @@ def main():
     y_test = [y_test[i] for i in range(y_test.shape[0]) if i not in deleted_Test_Positions]
     y_test = numpy.array(y_test)
 
+    print("Y_TRAIN:\n", y_train[0:10])
+    print("x_TRAIN:\n", x_train[0:10])
+    print("Y_Test:\n", y_test[0:10])
+    print("x_Teste:\n", x_test[0:10])
+
     #NOW I NEED TO GET ONLY FEW CLASS PER CLASS (100 samples per class for train) and (20 samples per class for test)
     howManyValuesPerClass_Train = [100, 100, 100, 0, 100, 0, 0, 0, 100, 100] #INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
     howManyValuesPerClass_Test = [20, 20, 20, 0, 20, 0, 0, 0, 20, 20]  # INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
@@ -558,10 +563,26 @@ def main():
     print(x_test.shape)
     print(y_test.shape)
 
-    #print
-    print("howManyValuesPerClass_Train\n", howManyValuesPerClass_Train)
-    print("howManyValuesPerClass_Test\n", howManyValuesPerClass_Test)
-    print(selectedIndexes_Test[0:10])
+    print("Y_TRAIN:\n", y_train[0:10])
+    print("x_TRAIN:\n", x_train[0:10])
+    print("Y_Test:\n", y_test[0:10])
+    print("x_Teste:\n", x_test[0:10])
+    print(x_train.dtype)
+
+    #CHANGE X_TRAIN AND X_TEST ASTYPE --> INT TO FLOAT, IN ORDER TO APPLY NORMALIZATION
+    x_train = x_train.astype(float)
+    x_test = x_test.astype(float)
+
+    #APPLY NORMALIZATION TO DATA --> RANGE [0-1], PUT SAME IMPORTANCE TO ALL PIXELS, AND TO AVOID MORE HYPERPARAMETERS IN WEIGHTS LEARNING
+    for i, j in zip(range(x_train.shape[0]), range(x_test.shape[0])):
+        for k, l in zip(range(x_train.shape[1]), range(x_test.shape[1])):
+            for m, n in zip(range(x_train.shape[2]), range(x_test.shape[2])):
+                for w in range(3):
+                    x_train[i][k][m][w] = x_train[i][k][m][w] / 255
+                    x_test[j][l][n][w] = x_test[j][l][n][w] / 255
+
+    #NOW PRE-PROCESSING IS FINISHED, AFTER THAT I CAN MAKE CNN MODEL
+
 
 if __name__ == "__main__":
     main()
