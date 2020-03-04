@@ -1,7 +1,8 @@
 import keras
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, BatchNormalization, Activation, AveragePooling1D
+from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, BatchNormalization, Activation, Conv2D, MaxPooling2D, Dropout
 import numpy
+import config
 
 #REF: https://keras.io/examples/mnist_cnn/
 #https://stackoverflow.com/questions/43396572/dimension-of-shape-in-conv1d/43399308 --> shows the logic to apply
@@ -78,6 +79,102 @@ def cnn(x_train, x_test, y_train, y_test ,batch_size, epochs, filters, kernel_si
         hitRate = numberRights / len(y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
 
         return hitRate
+
+    except:
+        raise
+
+def cnn2D(x_train, x_test, y_train, y_test , nF1, nF2, nN1, nN2, func, dropoutRate):
+
+    '''
+    This function is used to optimize cifar-10 problem using PSO optimized parameters
+    :param x_train: samples used in train
+    :param x_test: samples used in test
+    :param y_train: targets used in train
+    :param y_test:  targets used in test
+    :param nF1: integer --> number filters first two Conv2D [1-256]
+    :param nF2: integer --> number filters of three after Conv2D [1-256]
+    :param nN1: integer --> number neurons of first dense layer
+    :param nN2: integer --> number neurons of second dense layer
+    :param func: integer --> activation function 0 --> 'sigmoid', 1 --> 'tanh', 2 --> 'relu'
+    :param dropoutRate: float --> rate of Dropout Layer, avoids overfitting (extremely useful)
+    :return:
+    '''
+
+    try:
+
+        activationFunction= ''
+        if func == 0:
+            activationFunction = config.SIGMOID
+        elif func == 1:
+            activationFunction == config.TANH
+        else:
+            activationFunction == config.RELU
+
+        model = Sequential()
+        model.add(Conv2D(filters=nF1, kernel_size=(3, 3), padding='same',
+                         input_shape=(x_train.shape[1], x_train.shape[2], x_train.shape[3])))
+        model.add(Activation(activationFunction))
+        model.add(Dropout(dropoutRate))
+        model.add(Conv2D(filters=nF1, kernel_size=(3, 3)))
+        model.add(Activation(activationFunction))
+        model.add(MaxPooling2D(pool_size=2))
+        model.add(Dropout(dropoutRate))
+
+        model.add(Conv2D(filters=nF2, kernel_size=(3, 3), padding='same'))
+        model.add(Activation(activationFunction))
+        model.add(Conv2D(filters=nF2, kernel_size=(2, 2)))
+        model.add(Activation(activationFunction))
+        model.add(MaxPooling2D(pool_size=2))
+        model.add(Dropout(dropoutRate))
+        model.add(Conv2D(filters=nF2, kernel_size=(2, 2), padding='same'))
+        model.add(Activation(activationFunction))
+        model.add(MaxPooling2D(pool_size=2))
+        model.add(Dropout(dropoutRate))
+        # model.add(Conv2D(filters=64, kernel_size=(2,2)))
+        # model.add(Activation('relu'))
+        # model.add(BatchNormalization())
+        # model.add(MaxPooling2D(pool_size=2, strides=2))
+        model.add(Flatten())
+        model.add(Dense(nN1))
+        model.add(Activation(activationFunction))
+        model.add(Dropout(dropoutRate))
+        model.add(Dense(nN2))
+        model.add(Activation(activationFunction))
+        model.add(Dropout(dropoutRate))
+        model.add(Dense(units=4))
+        model.add(Activation(activationFunction))
+        model.summary()
+
+        # COMPILE MODEL
+        model.compile(optimizer='Adam', loss='categorical_crossentropy',
+                      metrics=['accuracy'])  # CROSSENTROPY BECAUSE IT'S MORE ADEQUATED TO MULTI-CLASS PROBLEMS
+
+        historyOfTraining = model.fit(
+            x=x_train,
+            y=y_train,
+            batch_size=32,
+            epochs=100,
+            validation_split=0.2,
+            shuffle=True
+        )
+
+        predict = model.predict(x=x_test, batch_size=32)
+        print(predict)
+        print(y_test)
+
+        predict = (predict == predict.max(axis=1)[:, None]).astype(int)
+        print(predict)
+
+        numberRights = 0
+        for i in range(len(y_test)):
+            indexMaxValue = numpy.argmax(predict[i], axis=0)
+            if indexMaxValue == numpy.argmax(y_test[i],
+                                             axis=0):  # COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+                numberRights = numberRights + 1
+
+        hitRate = numberRights / len(y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
+
+        print(hitRate)
 
     except:
         raise

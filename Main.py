@@ -4,7 +4,7 @@ import numpy
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import pyswarms as ps
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout
+from keras.layers import Dense, Flatten, Conv1D, MaxPooling1D, LSTM, Dropout, Conv2D, Activation, BatchNormalization, MaxPooling2D
 import keras
 import WeightsUpgradeOnTraining, WeightsInitializer
 import MLP
@@ -15,6 +15,12 @@ import plots
 import config
 import LSTM_PSO
 from operator import itemgetter
+from itertools import zip_longest
+from keras.preprocessing.image import ImageDataGenerator
+from deap import base, creator, tools, algorithms
+from bitstring import BitArray
+from scipy.stats import bernoulli
+import AlexNet, VGGNet
 import os
 #os.environ['TF_CPP_MIN_LOG_LEVEL']='2' #MAKES MORE FASTER THE INITIAL SETUP OF GPU --> WARNINGS INITIAL STEPS IS MORE QUICKLY
 os.environ["CUDA_VISIBLE_DEVICES"]="-1"  #THIS LINE DISABLES GPU OPTIMIZATION
@@ -305,8 +311,21 @@ def applyLSTMUsingPSO(particles, x_train, x_test, y_train, y_test, neurons, batc
     '''
 
     nParticles = particles.shape[0]
-    loss = [objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features, particles[i]) for i in range(nParticles)] #FALTA AINDA PASSAR OS DADOS DE UMA PARTICULA, MAS POR AGORA NAO INTERESSA --> 1º NECESSÁRIO COLOCAR O MODELO FUNCIONAL
+    loss, his = [objectiveFunctionLSTM(x_train, x_test, y_train, y_test, neurons, batch_size, time_stemps, features, particles[i]) for i in range(nParticles)] #FALTA AINDA PASSAR OS DADOS DE UMA PARTICULA, MAS POR AGORA NAO INTERESSA --> 1º NECESSÁRIO COLOCAR O MODELO FUNCIONAL
     return loss
+
+def objectiveFunctionAlexNet(particles, x_train, x_test, y_train, y_test):
+
+    try:
+
+        numberParticles = particles.shape[0]
+        allLosses = [AlexNet.alexNet(particleDimensions=particles[i], x_train=x_train, x_test=x_test,
+                                     y_train=y_train, y_test=y_test) for i in range(numberParticles)]
+
+        return allLosses
+
+    except:
+        raise
 
 def main():
 
@@ -314,181 +333,181 @@ def main():
         GET ALL PARTIES NEEDED FROM DATASET
     '''
 
-    X, Y, x_train, x_test, y_train, y_test = getDataset(25) #TEST PERCENTAGE IS 25%
-
-    '''
-        PSO FORMULATION FOR CNN IMPLEMENTATION
-    '''
-    options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
-    dimensions = 2 # IN FIRST DIMENSION I HAVE REPRESENTED NUMBER OF NODES ON A CNN LAYER, AND IN SECOND DIMENSION KERNEL USED ON CNN LAYER (MATRIX)
-    minBound = numpy.ones(2)#MIN VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
-    maxBound = 64 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
-    maxBound[1] = 4 #IN THIS DIMENSION THE MAX VALUE IS 4
-    bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
-
-    #optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
-
-    #cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=2)
-
-    '''
-        PSO FORMULATION FOR LSTM IMPLEMENTATION
-    '''
-
-    #NEED TO DEFINE INITIAL VALUES OF LSTM (BATCH_SIZE, TIME_STEMP, ...), IN ORDER TO DEFINE THE DIMENSIONS OF PSO --> I CAN CREATE AN PSO OPTIMIZER BEFORE, TO CHECK THIS VALUES, OR DEFINE NEW DIMENSIONS SPECIFIC TO THIS VALUES
-    #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
-
-    neurons = 150
-    #BATCH_SIZE NEEDS TO BE A NUMBER MINOR THAN NUMBER OF SAMPLES FOR TRAINING AND TEST, AND NEED TO BE DIVISIVEL BY THEM
-    batch_size = 5 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
-    time_stemps = 1 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
-    data_dimension = 4 #NUMBER OF FEATURES
-
-    #DEFINITION OF THE DIMENSIONS OF THE PROBLEM --> REPRESENTS THE WEIGHTS OF LSTM LAYER (KERNEL AND RECURRENT MATRIXES) --> I DIDN'T CONSIDER BIAS HERE
-    kernelMatrix_Input = (data_dimension * neurons) * 4 #(data_dimension * neurons) REPRESENTS W_I OR W_F OR W_C OR W_O AND THEN I NEED TO MULTIPLY BY THE 4 HYPHOTESIS (W_I, W_F, W_C, W_O)
-    recurrentKernel = (neurons * neurons) * 4 #(neurons * neurons) REPRESENTS THE NUMBER OF POSSIBLE NEURONS ON A STATE, AND THEN I NEED TO MULTIPLY BY 4 (ALL STATES U_I, U_F, U_C, U_O)
-    dimensions = kernelMatrix_Input + recurrentKernel
-
-    #I CANT USE THE DATASET DEFINE BEFORE, BECAUSE WITH A 25 PERCENTAGE I CANT GET A POSSIBLE BATCH_SIZE TO DIVIDE BY THIS TWO DATASET'S
-    #LINK WITH THIS EXPLANATION --> https://medium.com/@ellery.leung/rnn-lstm-example-with-keras-about-input-shape-94120b0050e
-    X, Y, x_train, x_test, y_train, y_test = getDataset(20)  # I NEED TO RESTORE THE DATASET PERCENTAGE, IN ORDER TO FIND A VALUE DIVISIVEL BY TRAIN AND TEST DATASET: 150 SAMPLES --> 120 FOR TRAIN AND 30 FOR TEST, AND WITH A BATCH_SIZE= 30 I CAN DIVIDE FOR THIS TWO DATASET'S
-
-    optimizer = ps.single.GlobalBestPSO(n_particles=1, dimensions=dimensions, options=options) #DEFAULT BOUNDS
-
-    cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=1) #the cost function has yet to be created
-
-    '''
-
-        MLP WITHOUT PSO
-
-    '''
-    #DEFINITION OF VARIABLES TO PASS TO mlp function
-    neurons = 100
-    batch_size = 30
-    features = X.shape[1]
-    classes = 3
-    epochs = 30
-
-    #GET SPLIT OF DATASET --> 70% TRAIN AND 30% PER TEST
-    X, Y, x_train, x_test, y_train, y_test = getDataset(30)
-
-    scores = MLP.mlp(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size, neurons=neurons, numberFeatures=features, numberClasses=classes, epochs=epochs)
-
-    print('Loss: ', scores[0])
-    print('\nAccuracy', scores[1])
-
-    '''
-        CNN WITHOUT PSO
-    '''
-
-    #DEFINITION OF VALUES OF PARAMETERS
-    nFilters = 12
-    batch_size = 5
-    epochs = 15 #n value = 6 --> (epochs/batch_size) = 30/5 = 6
-    kernel_size = (4,)#TUPLE OF ONE INTEGER, COULD BE ALSO A SINGLE INTEGER
-    #STRIDE IF I WANT I CAN OVERRIDE THIS VALUE BY DEFAULT IS 1 ON PARAMETER OF cnn function
-
-    #GET SPLIT OF DATASET --> 70% TRAIN AND 30% PER TEST
-    X, Y, x_train, x_test, y_train, y_test = getDataset(30)
-
-    score = CNN.cnn(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, filters=nFilters, batch_size=batch_size, epochs=epochs, kernel_size=kernel_size)
-
-    print('\nAccuracy: ', score)
-
-    '''
-        LSTM WITHOUT PSO
-    '''
-
-    neurons = 50
-    batch_size = 5
-    epochs = 30
-
-    #DEFINITION OF TRAINING AND TEST DATASET
-    X, Y, x_train, x_test, y_train, y_test = getDataset(30)
-
-    score = LSTM_Model.lstm(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, neurons=neurons, batch_size=batch_size, epochs=epochs)
-
-    print('\nAccuracy: ', score)
-
-    '''
-        CNN WITH PSO
-    '''
-
-    #DEFINITION OF CNN PARAMETERS
-    batch_size = 5
-    kernel_size = (4,)
-    stride = 1
-    #EPOCHS AND FILTERS ARE DEFINED BY PARTICLES
-
-    #DEFINITION OF PSO PARAMETERS
-    numberParticles = 8
-    iterations = 2
-
-    minBound = numpy.ones(2)  # MIN BOUND FOR TWO DIMENSIONS IS 1
-    maxBound = numpy.ones(2)  # ONLY INITIALIZATION
-    maxBound[0] = 601  # MAX NUMBER OF FILTERS
-    maxBound[1] = 401  # MAX NUMBER OF EPOCHS
-    bounds = (minBound, maxBound)
-
-    options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2 }
-    #options = {config.C1: 0.3, config.C2: 0.2, config.INERTIA: 0.9}
-    kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : options}
-    #kwargs = {config.TYPE: config.GLOBAL_BEST, config.OPTIONS: options}
-
-    cost, pos, optimizer = CNN_WithOptimization.callCNNOptimization(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
-                                                         kernel_size=kernel_size, numberParticles=numberParticles, iterations=iterations,
-                                                         bounds=bounds, stride=stride, **kwargs)
-
-    print(cost)
-    print(pos)
-
-    #PLOT'S
-    plots.plotCostHistory(optimizer=optimizer)
-
-    xPlotLimits = numpy.ones(2)
-    xPlotLimits[1] = maxBound[0] #MAX VALUE OF FILTER AXIS IS 601 (X AXIS)
-    yPlotLimits = numpy.ones(2)
-    yPlotLimits[1] = maxBound[1] #MAX VALUE OF EPOCHS AXIS IS 401 (Y AXIS)
-    filename = 'particlesHistoryPlot.html'
-    plots.plotPositionHistory(optimizer=optimizer, xLimits=xPlotLimits, yLimits=yPlotLimits,
-                              xLabel=config.X_LABEL_FILTERS, yLabel=config.Y_LABEL_EPOCHS ,filename=filename)
-
-    '''
-        LSTM WITH PSO
-    '''
-
-    #DEFINITION OF LSTM PARAMETERS, EPOCHS AND NEURONS ARE DEFINED BY PSO
-    batch_size = 5
-
-    #DEFINITION OF PSO PARAMETERS
-    numberParticles = 20
-    iterations = 10
-    dimensions = 2 # [0] --> NEURONS , [1] --> EPOCHS
-
-    #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
-    minBounds = numpy.ones(2)
-    maxBounds = numpy.ones(2)
-    maxBounds[0] = 251 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
-    maxBounds[1] = 201
-    bounds = (minBounds, maxBounds)
-
-    #DEFINITION OF DIFFERENT TOPOLOGIES OPTIONS
-    lbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2}
-    lbest_kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : lbest_options}
-    gbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9}
-    gbest_kwargs = {config.TYPE : config.GLOBAL_BEST, config.OPTIONS : gbest_options}
-
-    #PASSING ALL THIS OPTIONS TO LSTM_PSO applyLSTM_PSO FUNCTION
-    cost, pos, optimizer = LSTM_PSO.applyLSTM_PSO(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
-                                                  numberParticles=numberParticles, iterations=iterations, dimensions=dimensions,
-                                                  bounds=bounds, **lbest_kwargs)
-    print(cost)
-    print(pos)
-
-    #PLOT GRAPHICS ILLUSTRATING THE COST VARIATION AND PARTICLES MOVEMENT AND CONVERGENCE
-    plots.plotCostHistory(optimizer=optimizer)
-    plots.plotPositionHistory(optimizer=optimizer, xLimits=(minBounds[0], maxBounds[0]),
-                              yLimits=(minBounds[1], maxBounds[1]), filename='lstmParticlesPosConvergence.html',
-                              xLabel=config.X_LABEL_NEURONS, yLabel=config.Y_LABEL_EPOCHS)
+    # X, Y, x_train, x_test, y_train, y_test = getDataset(25) #TEST PERCENTAGE IS 25%
+    #
+    # '''
+    #     PSO FORMULATION FOR CNN IMPLEMENTATION
+    # '''
+    # options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
+    # dimensions = 2 # IN FIRST DIMENSION I HAVE REPRESENTED NUMBER OF NODES ON A CNN LAYER, AND IN SECOND DIMENSION KERNEL USED ON CNN LAYER (MATRIX)
+    # minBound = numpy.ones(2)#MIN VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    # maxBound = 64 * numpy.ones(2) #MAX VALUE BOUND --> I CAN ONLY OPTIMIZE A SINGLE LIMIT FOR ALL DIMENSIONS
+    # maxBound[1] = 4 #IN THIS DIMENSION THE MAX VALUE IS 4
+    # bounds = (minBound, maxBound) #MAX DIMENSIONS LIMITS RESPECTIVELY FOR NUMBER OF NODES OF A CNN LAYER AND KERNEL DIMENSION
+    #
+    # #optimizer = ps.single.GlobalBestPSO(n_particles=100, dimensions=dimensions, options=options, bounds=bounds)
+    #
+    # #cost, pos = optimizer.optimize(objectiveFunctionPSO, X_train=x_train, X_test= x_test, Y_train= y_train, Y_test= y_test ,iters=2)
+    #
+    # '''
+    #     PSO FORMULATION FOR LSTM IMPLEMENTATION
+    # '''
+    #
+    # #NEED TO DEFINE INITIAL VALUES OF LSTM (BATCH_SIZE, TIME_STEMP, ...), IN ORDER TO DEFINE THE DIMENSIONS OF PSO --> I CAN CREATE AN PSO OPTIMIZER BEFORE, TO CHECK THIS VALUES, OR DEFINE NEW DIMENSIONS SPECIFIC TO THIS VALUES
+    # #THE BOUNDS FOR NOW ARE THE DEFAULT VALUES --> BETWEEN 0 AND 1
+    #
+    # neurons = 150
+    # #BATCH_SIZE NEEDS TO BE A NUMBER MINOR THAN NUMBER OF SAMPLES FOR TRAINING AND TEST, AND NEED TO BE DIVISIVEL BY THEM
+    # batch_size = 5 #I HAVE 150 SAMPLES, AND TO REDUCE THE COMPUTACIONAL REQUIREMENTS, I DEFINE 3 TIMES TO LEARN (50*3) = 150
+    # time_stemps = 1 #EVERY VALUES ON EVERY ATTRIBUTES HAVE THE SAME FORMAT AND LENGHT --> FLOAT VALUES LIKE: 1.2, LSTM NEEDS TO LOOK AT THIS 3 PIECES
+    # data_dimension = 4 #NUMBER OF FEATURES
+    #
+    # #DEFINITION OF THE DIMENSIONS OF THE PROBLEM --> REPRESENTS THE WEIGHTS OF LSTM LAYER (KERNEL AND RECURRENT MATRIXES) --> I DIDN'T CONSIDER BIAS HERE
+    # kernelMatrix_Input = (data_dimension * neurons) * 4 #(data_dimension * neurons) REPRESENTS W_I OR W_F OR W_C OR W_O AND THEN I NEED TO MULTIPLY BY THE 4 HYPHOTESIS (W_I, W_F, W_C, W_O)
+    # recurrentKernel = (neurons * neurons) * 4 #(neurons * neurons) REPRESENTS THE NUMBER OF POSSIBLE NEURONS ON A STATE, AND THEN I NEED TO MULTIPLY BY 4 (ALL STATES U_I, U_F, U_C, U_O)
+    # dimensions = kernelMatrix_Input + recurrentKernel
+    #
+    # #I CANT USE THE DATASET DEFINE BEFORE, BECAUSE WITH A 25 PERCENTAGE I CANT GET A POSSIBLE BATCH_SIZE TO DIVIDE BY THIS TWO DATASET'S
+    # #LINK WITH THIS EXPLANATION --> https://medium.com/@ellery.leung/rnn-lstm-example-with-keras-about-input-shape-94120b0050e
+    # X, Y, x_train, x_test, y_train, y_test = getDataset(20)  # I NEED TO RESTORE THE DATASET PERCENTAGE, IN ORDER TO FIND A VALUE DIVISIVEL BY TRAIN AND TEST DATASET: 150 SAMPLES --> 120 FOR TRAIN AND 30 FOR TEST, AND WITH A BATCH_SIZE= 30 I CAN DIVIDE FOR THIS TWO DATASET'S
+    #
+    # optimizer = ps.single.GlobalBestPSO(n_particles=1, dimensions=dimensions, options=options) #DEFAULT BOUNDS
+    #
+    # cost, pos = optimizer.optimize(applyLSTMUsingPSO, x_train=x_train, x_test= x_test, y_train= y_train, y_test= y_test, neurons=neurons, batch_size=batch_size, time_stemps=time_stemps, features=data_dimension ,iters=1) #the cost function has yet to be created
+    #
+    # '''
+    #
+    #     MLP WITHOUT PSO
+    #
+    # '''
+    # #DEFINITION OF VARIABLES TO PASS TO mlp function
+    # neurons = 100
+    # batch_size = 30
+    # features = X.shape[1]
+    # classes = 3
+    # epochs = 30
+    #
+    # #GET SPLIT OF DATASET --> 70% TRAIN AND 30% PER TEST
+    # X, Y, x_train, x_test, y_train, y_test = getDataset(30)
+    #
+    # scores = MLP.mlp(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size, neurons=neurons, numberFeatures=features, numberClasses=classes, epochs=epochs)
+    #
+    # print('Loss: ', scores[0])
+    # print('\nAccuracy', scores[1])
+    #
+    # '''
+    #     CNN WITHOUT PSO
+    # '''
+    #
+    # #DEFINITION OF VALUES OF PARAMETERS
+    # nFilters = 12
+    # batch_size = 5
+    # epochs = 15 #n value = 6 --> (epochs/batch_size) = 30/5 = 6
+    # kernel_size = (4,)#TUPLE OF ONE INTEGER, COULD BE ALSO A SINGLE INTEGER
+    # #STRIDE IF I WANT I CAN OVERRIDE THIS VALUE BY DEFAULT IS 1 ON PARAMETER OF cnn function
+    #
+    # #GET SPLIT OF DATASET --> 70% TRAIN AND 30% PER TEST
+    # X, Y, x_train, x_test, y_train, y_test = getDataset(30)
+    #
+    # score = CNN.cnn(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, filters=nFilters, batch_size=batch_size, epochs=epochs, kernel_size=kernel_size)
+    #
+    # print('\nAccuracy: ', score)
+    #
+    # '''
+    #     LSTM WITHOUT PSO
+    # '''
+    #
+    # neurons = 50
+    # batch_size = 5
+    # epochs = 30
+    #
+    # #DEFINITION OF TRAINING AND TEST DATASET
+    # X, Y, x_train, x_test, y_train, y_test = getDataset(30)
+    #
+    # score = LSTM_Model.lstm(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, neurons=neurons, batch_size=batch_size, epochs=epochs)
+    #
+    # print('\nAccuracy: ', score)
+    #
+    # '''
+    #     CNN WITH PSO
+    # '''
+    #
+    # #DEFINITION OF CNN PARAMETERS
+    # batch_size = 5
+    # kernel_size = (4,)
+    # stride = 1
+    # #EPOCHS AND FILTERS ARE DEFINED BY PARTICLES
+    #
+    # #DEFINITION OF PSO PARAMETERS
+    # numberParticles = 8
+    # iterations = 2
+    #
+    # minBound = numpy.ones(2)  # MIN BOUND FOR TWO DIMENSIONS IS 1
+    # maxBound = numpy.ones(2)  # ONLY INITIALIZATION
+    # maxBound[0] = 601  # MAX NUMBER OF FILTERS
+    # maxBound[1] = 401  # MAX NUMBER OF EPOCHS
+    # bounds = (minBound, maxBound)
+    #
+    # options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2 }
+    # #options = {config.C1: 0.3, config.C2: 0.2, config.INERTIA: 0.9}
+    # kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : options}
+    # #kwargs = {config.TYPE: config.GLOBAL_BEST, config.OPTIONS: options}
+    #
+    # cost, pos, optimizer = CNN_WithOptimization.callCNNOptimization(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
+    #                                                      kernel_size=kernel_size, numberParticles=numberParticles, iterations=iterations,
+    #                                                      bounds=bounds, stride=stride, **kwargs)
+    #
+    # print(cost)
+    # print(pos)
+    #
+    # #PLOT'S
+    # plots.plotCostHistory(optimizer=optimizer)
+    #
+    # xPlotLimits = numpy.ones(2)
+    # xPlotLimits[1] = maxBound[0] #MAX VALUE OF FILTER AXIS IS 601 (X AXIS)
+    # yPlotLimits = numpy.ones(2)
+    # yPlotLimits[1] = maxBound[1] #MAX VALUE OF EPOCHS AXIS IS 401 (Y AXIS)
+    # filename = 'particlesHistoryPlot.html'
+    # plots.plotPositionHistory(optimizer=optimizer, xLimits=xPlotLimits, yLimits=yPlotLimits,
+    #                           xLabel=config.X_LABEL_FILTERS, yLabel=config.Y_LABEL_EPOCHS ,filename=filename)
+    #
+    # '''
+    #     LSTM WITH PSO
+    # '''
+    #
+    # #DEFINITION OF LSTM PARAMETERS, EPOCHS AND NEURONS ARE DEFINED BY PSO
+    # batch_size = 5
+    #
+    # #DEFINITION OF PSO PARAMETERS
+    # numberParticles = 20
+    # iterations = 10
+    # dimensions = 2 # [0] --> NEURONS , [1] --> EPOCHS
+    #
+    # #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
+    # minBounds = numpy.ones(2)
+    # maxBounds = numpy.ones(2)
+    # maxBounds[0] = 251 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
+    # maxBounds[1] = 201
+    # bounds = (minBounds, maxBounds)
+    #
+    # #DEFINITION OF DIFFERENT TOPOLOGIES OPTIONS
+    # lbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2}
+    # lbest_kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : lbest_options}
+    # gbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9}
+    # gbest_kwargs = {config.TYPE : config.GLOBAL_BEST, config.OPTIONS : gbest_options}
+    #
+    # #PASSING ALL THIS OPTIONS TO LSTM_PSO applyLSTM_PSO FUNCTION
+    # cost, pos, optimizer = LSTM_PSO.applyLSTM_PSO(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, batch_size=batch_size,
+    #                                               numberParticles=numberParticles, iterations=iterations, dimensions=dimensions,
+    #                                               bounds=bounds, **lbest_kwargs)
+    # print(cost)
+    # print(pos)
+    #
+    # #PLOT GRAPHICS ILLUSTRATING THE COST VARIATION AND PARTICLES MOVEMENT AND CONVERGENCE
+    # plots.plotCostHistory(optimizer=optimizer)
+    # plots.plotPositionHistory(optimizer=optimizer, xLimits=(minBounds[0], maxBounds[0]),
+    #                           yLimits=(minBounds[1], maxBounds[1]), filename='lstmParticlesPosConvergence.html',
+    #                           xLabel=config.X_LABEL_NEURONS, yLabel=config.Y_LABEL_EPOCHS)
 
     '''###############################################################################
     #                                                                                #   
@@ -498,7 +517,7 @@ def main():
     #   OFFICIAL EXPLANATION OF CIFAR-10: http://www.cs.toronto.edu/~kriz/cifar.html #
     #                                                                                #
     '''###############################################################################
-
+    #https://www.researchgate.net/post/Why_cant_I_get_accuracy_very_badly_predicted_on_training_data_with_dataset_of_having_validation_accuracy_of_97_using_resnet50
     #GET DATA
     (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 
@@ -526,26 +545,22 @@ def main():
     y_test = [y_test[i] for i in range(y_test.shape[0]) if i not in deleted_Test_Positions]
     y_test = numpy.array(y_test)
 
-    print("Y_TRAIN:\n", y_train[0:10])
-    print("x_TRAIN:\n", x_train[0:10])
-    print("Y_Test:\n", y_test[0:10])
-    print("x_Teste:\n", x_test[0:10])
-
     #NOW I NEED TO GET ONLY FEW CLASS PER CLASS (100 samples per class for train) and (20 samples per class for test)
-    howManyValuesPerClass_Train = [100, 100, 100, 0, 100, 0, 0, 0, 100, 100] #INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
-    howManyValuesPerClass_Test = [20, 20, 20, 0, 20, 0, 0, 0, 20, 20]  # INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
+    howManyValuesPerClass_Train = [600, 600, 600, 0, 600, 0, 0, 0, 600, 600] #INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
+    howManyValuesPerClass_Test = [300, 300, 300, 0, 300, 0, 0, 0, 300, 300]  # INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
     selectedIndexes_Train = numpy.array([])
     selectedIndexes_Test = numpy.array([])
 
-    for i, j in zip(range(y_train.shape[0]), range(y_test.shape[0])):
+    for i, j in zip_longest(range(y_train.shape[0]), range(y_test.shape[0])):
         if y_train[i][0] not in values: #IF IT'S A ALLOWED CLASS
-            if howManyValuesPerClass_Train[y_train[i][0]] < 100: #ONLY ACCEPTS UNTIL 100
+            if howManyValuesPerClass_Train[y_train[i][0]] < 600: #ONLY ACCEPTS UNTIL 100
                 selectedIndexes_Train = numpy.append(selectedIndexes_Train, i) #ADD POSITION TO SELECTED_INDEXES
                 howManyValuesPerClass_Train[y_train[i][0]] = howManyValuesPerClass_Train[y_train[i][0]] + 1
-        if y_test[j][0] not in values:
-            if howManyValuesPerClass_Test[y_test[j][0]] < 20:
-                selectedIndexes_Test = numpy.append(selectedIndexes_Test, j)
-                howManyValuesPerClass_Test[y_test[j][0]] = howManyValuesPerClass_Test[y_test[j][0]] + 1
+        if j != None:
+            if y_test[j][0] not in values:
+                if howManyValuesPerClass_Test[y_test[j][0]] < 300:
+                    selectedIndexes_Test = numpy.append(selectedIndexes_Test, j)
+                    howManyValuesPerClass_Test[y_test[j][0]] = howManyValuesPerClass_Test[y_test[j][0]] + 1
 
     #SELECT ONLY INDEXES IDENTIFIED BEFORE, FOR TRAIN AND TEST
     x_train = [x_train[i] for i in range(selectedIndexes_Train.shape[0])]
@@ -557,32 +572,261 @@ def main():
     y_test = [y_test[i] for i in range(selectedIndexes_Test.shape[0])]
     y_test = numpy.array(y_test)
 
+    print("Y_TRAIN:\n", y_train[:])
+    print("x_TRAIN:\n", x_train[:])
+    print("Y_Test:\n", y_test[:])
+    print("x_Teste:\n", x_test[:])
+
+    #REFORMULE TARGETS INDEXES 3 --> 0 , 5 --> 1, 6 --> 2, 7 --> 3
+    #IN ORDER THO HAVE ONLY THIS CLASSES IN FINAL OUTPUT
+    oldPos = [3, 5, 6, 7]
+    for i, j in zip_longest(range(y_train.shape[0]), range(y_test.shape[0])):
+        getIndex_Train = oldPos.index(y_train[i])
+        y_train[i] = getIndex_Train
+        if j != None:
+            getIndex_Test = oldPos.index(y_test[j])
+            y_test[j] = getIndex_Test
+
+    print("Y_TRAIN:\n", y_train[:])
+    print("x_TRAIN:\n", x_train[:])
+    print("Y_Test:\n", y_test[:])
+    print("x_Teste:\n", x_test[:])
+
     #CHECK SHAPE OF DATA
     print(x_train.shape)
     print(y_train.shape)
     print(x_test.shape)
     print(y_test.shape)
 
-    print("Y_TRAIN:\n", y_train[0:10])
-    print("x_TRAIN:\n", x_train[0:10])
-    print("Y_Test:\n", y_test[0:10])
-    print("x_Teste:\n", x_test[0:10])
-    print(x_train.dtype)
-
     #CHANGE X_TRAIN AND X_TEST ASTYPE --> INT TO FLOAT, IN ORDER TO APPLY NORMALIZATION
     x_train = x_train.astype(float)
     x_test = x_test.astype(float)
 
     #APPLY NORMALIZATION TO DATA --> RANGE [0-1], PUT SAME IMPORTANCE TO ALL PIXELS, AND TO AVOID MORE HYPERPARAMETERS IN WEIGHTS LEARNING
-    for i, j in zip(range(x_train.shape[0]), range(x_test.shape[0])):
-        for k, l in zip(range(x_train.shape[1]), range(x_test.shape[1])):
-            for m, n in zip(range(x_train.shape[2]), range(x_test.shape[2])):
+    for i, j in zip_longest(range(x_train.shape[0]), range(x_test.shape[0])): #DIFFERENT LENGTHS
+        for k, l in zip(range(x_train.shape[1]), range(x_test.shape[1])): #SAME LENGTH, DOESN'T MATTER
+            for m, n in zip(range(x_train.shape[2]), range(x_test.shape[2])): #SAME LENGTH, DOESN'T MATTER
                 for w in range(3):
                     x_train[i][k][m][w] = x_train[i][k][m][w] / 255
-                    x_test[j][l][n][w] = x_test[j][l][n][w] / 255
+                    if j != None:
+                        x_test[j][l][n][w] = x_test[j][l][n][w] / 255
+
+    #x_train = (x_train - x_train.mean(axis=(0, 1, 2), keepdims=True)) / x_train.std(axis=(0, 1, 2), keepdims=True)
+    #x_test = (x_test - x_test.mean(axis=(0, 1, 2), keepdims=True)) / x_test.std(axis=(0, 1, 2), keepdims=True)
+    print("Y_TRAIN:\n", y_train[:])
+    print("x_TRAIN:\n", x_train[:])
+    print("Y_Test:\n", y_test[:])
+    print("x_Teste:\n", x_test[:])
+
+    #COVERSION TARGETS TO CATEGORICAL
+    y_train = keras.utils.to_categorical(y_train, 4) #4 NUMBER OF CLASSES (DOGS, CATS, FROGS AND HORSES)
+    y_test = keras.utils.to_categorical(y_test, 4)
 
     #NOW PRE-PROCESSING IS FINISHED, AFTER THAT I CAN MAKE CNN MODEL
+    # model = Sequential()
+    # model.add(Conv2D(filters=16, kernel_size=(5,5), padding='same', input_shape=(x_train.shape[1], x_train.shape[2], x_train.shape[3])))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.25))
+    # model.add(Conv2D(filters=16, kernel_size=(3,3)))
+    # model.add(Activation('relu'))
+    # model.add(MaxPooling2D(pool_size=2))
+    # model.add(Dropout(0.3))
+    #
+    # model.add(Conv2D(filters=32, kernel_size=(3, 3), padding='same'))
+    # model.add(Activation('relu'))
+    # model.add(Conv2D(filters=32, kernel_size=(2,2)))
+    # model.add(Activation('relu'))
+    # model.add(MaxPooling2D(pool_size=2))
+    # model.add(Dropout(0.25))
+    # model.add(Conv2D(filters=64, kernel_size=(2,2), padding='same'))
+    # model.add(Activation('relu'))
+    # model.add(MaxPooling2D(pool_size=2))
+    # model.add(Dropout(0.25))
+    # # model.add(Conv2D(filters=64, kernel_size=(2,2)))
+    # # model.add(Activation('relu'))
+    # # model.add(BatchNormalization())
+    # # model.add(MaxPooling2D(pool_size=2, strides=2))
+    # model.add(Flatten())
+    # model.add(Dense(128))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.25))
+    # model.add(Dense(256))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.25))
+    # model.add(Dense(units=4))
+    # model.add(Activation('softmax'))
+    # model.summary()
+    #
+    # #OPTIMIZER
+    # opt = keras.optimizers.RMSprop(learning_rate=0.0001, decay=1e-6)
+    #
+    # # COMPILE MODEL
+    # model.compile(optimizer=opt, loss='categorical_crossentropy',
+    #               metrics=['accuracy'])  # CROSSENTROPY BECAUSE IT'S MORE ADEQUATED TO MULTI-CLASS PROBLEMS
+    #
+    # data_augmentation = False
+    #
+    # if data_augmentation == False:
+    #     # FIT MODEL
+    #     historyOfTraining = model.fit(
+    #         x=x_train,
+    #         y=y_train,
+    #         batch_size=32,
+    #         epochs=100,
+    #         validation_split=0.2,
+    #         shuffle=True
+    #     )
+    #
+    #     predict = model.predict(x=x_test, batch_size=32)
+    #     print(predict)
+    #     print(y_test)
+    #
+    #     predict = (predict == predict.max(axis=1)[:, None]).astype(int)
+    #     print(predict)
+    #
+    #     numberRights = 0
+    #     for i in range(len(y_test)):
+    #         indexMaxValue = numpy.argmax(predict[i], axis=0)
+    #         if indexMaxValue == numpy.argmax(y_test[i],
+    #                                          axis=0):  # COMPARE INDEX OF MAJOR CLASS PREDICTED AND REAL CLASS
+    #             numberRights = numberRights + 1
+    #
+    #     hitRate = numberRights / len(y_test)  # HIT PERCENTAGE OF CORRECT PREVISIONS
+    #
+    #     print(hitRate)
+    #
+    # else: #USE OF IMAGE DATA GENERATOR
+    #     image_gen = ImageDataGenerator(featurewise_center=False,  # set input mean to 0 over the dataset
+    #     samplewise_center=False,  # set each sample mean to 0
+    #     featurewise_std_normalization=False,  # divide inputs by std of the dataset
+    #     samplewise_std_normalization=False,  # divide each input by its std
+    #     zca_whitening=False,  # apply ZCA whitening
+    #     zca_epsilon=1e-06,  # epsilon for ZCA whitening
+    #     rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
+    #     # randomly shift images horizontally (fraction of total width)
+    #     width_shift_range=0.1,
+    #     # randomly shift images vertically (fraction of total height)
+    #     height_shift_range=0.1,
+    #     shear_range=0.,  # set range for random shear
+    #     zoom_range=0.,  # set range for random zoom
+    #     channel_shift_range=0.,  # set range for random channel shifts
+    #     # set mode for filling points outside the input boundaries
+    #     fill_mode='nearest',
+    #     cval=0.,  # value used for fill_mode = "constant"
+    #     horizontal_flip=True,  # randomly flip images
+    #     vertical_flip=False,  # randomly flip images
+    #     # set rescaling factor (applied before any other transformation)
+    #     rescale=None,
+    #     # set function that will be applied on each input
+    #     preprocessing_function=None,
+    #     # image data format, either "channels_first" or "channels_last"
+    #     data_format=None,
+    #     # fraction of images reserved for validation (strictly between 0 and 1)
+    #     validation_split=0.0)
+    #
+    #     image_gen.fit(x_train)
+    #
+    #     model.fit_generator(image_gen.flow(
+    #         x=x_train,
+    #         y=y_train,
+    #         batch_size=32),
+    #     epochs=200,
+    #     validation_data=(x_test, y_test),
+    #     workers= 4)
+    #
+    #     scores = model.evaluate(x_test, y_test, verbose=1)
+    #     print('Test loss:', scores[0])
+    #     print('Test accuracy:', scores[1])
+    #
+    #     '''
+    #         CNN CIFAR-10 PSO OPTIMIZATION
+    #     '''
 
+    '''
+        TEST ALEX_NET
+    '''
+
+    # alexNetValues = [64, 128, 256, 256, 32, 512, 0.4, 0.0001]
+    #
+    alexNetValues = [239, 97, 239, 220, 182, 135, 0.4, 0.0001]
+    AlexNet.alexNet(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, particleDimensions=alexNetValues)
+
+    '''
+        TEST VGG NET
+    '''
+
+    #finalScore = VGGNet.vggNet(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test)
+    #print(finalScore)
+
+    '''
+        ALEX_NET WITH PSO OPTIMIZATION
+    '''
+
+    #DEFINITION OF PSO PARAMETERS
+    # numberParticles = 15
+    # iterations = 5
+    # dimensions = 6 # [0-3] --> NUMBER FILTERS, [3-6] --> NUMBER NEURONS
+    #
+    # #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
+    # minBounds = numpy.ones(6)
+    # maxBounds = numpy.ones(6)
+    # maxBounds[0] = maxBounds[1] = maxBounds[2] = 256 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
+    # maxBounds[3] = maxBounds[4] = maxBounds[5] = 256 #FUNC_ACTIVATION RANGE [0,1 OR 2]
+    # bounds = (minBounds, maxBounds)
+    #
+    # #DEFINITION OF DIFFERENT TOPOLOGIES OPTIONS
+    # lbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2}
+    # lbest_kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : lbest_options}
+    # gbest_options = {config.C1 : 0.4, config.C2 : 0.4, config.INERTIA : 0.9}
+    # gbest_kwargs = {config.TYPE : config.GLOBAL_BEST, config.OPTIONS : gbest_options}
+    #
+    # optimizer = ps.single.GlobalBestPSO(n_particles=numberParticles, dimensions=dimensions,
+    #                                           options=gbest_options, bounds=bounds)
+    #
+    # cost, pos = optimizer.optimize(objective_func=objectiveFunctionAlexNet,x_train=x_train, x_test=x_test , y_train=y_train,
+    #                                y_test=y_test, iters=iterations)
+    #
+    # print(cost)
+    # print(pos)
+    #
+    # plots.plotCostHistory(optimizer=optimizer)
+
+    '''
+        ALEX NET WITH GENETIC ALGORITHM OPTIMIZATION
+    '''
+
+    # population_size = 10
+    # num_generations = 5
+    # gene_length = 35 # BIT LENGTH --> [64, 128, 256, 256, 64] --> [6, 7, 8, 8, 6] = 35
+    #
+    # creator.create('FitnessMax', base.Fitness, weights=(-1.0,))
+    # creator.create('Individual', list, fitness=creator.FitnessMax)
+    #
+    # toolbox = base.Toolbox()
+    # toolbox.register('binary', bernoulli.rvs, 0.5)
+    # toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.binary, n=gene_length) #REGISTER INDIVIDUAL
+    # toolbox.register('population', tools.initRepeat, list, toolbox.individual) #REGISTER POPULATION
+    #
+    # toolbox.register('mate', tools.cxOrdered) #CROSSOVER TECHNIQUE --> https://www.researchgate.net/figure/The-order-based-crossover-OX-a-and-the-insertion-mutation-b-operators_fig2_224330103
+    # toolbox.register('mutate', tools.mutShuffleIndexes, indpb=0.6) #MUTATION TECHNIQUE --> https://www.mdpi.com/1999-4893/12/10/201/htm
+    # toolbox.register('select', tools.selTournament, tournsize=100) #IN MINIMIZATION PROBLEMS I CAN'T USE ROULETTE
+    # toolbox.register('evaluate', AlexNet.alexNetForGA, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test) #EVALUATION FUNCTION
+    #
+    # population = toolbox.population(n=population_size)
+    # r = algorithms.eaSimple(population, toolbox, cxpb=0.4, mutpb=0.2, ngen=num_generations, verbose=True)
+    #
+    # bestValue = tools.selBest(population, k=1) #I ONLY NEED BEST INDIVIDUAL --> ARRAY BIDIMENSIONAL (K=1, GENE_LENGTH)
+    #
+    # conv1 = BitArray(bestValue[0][0:6]).uint
+    # print(conv1)
+    # conv2 = BitArray(bestValue[0][6:13]).uint
+    # print(conv2)
+    # conv3 = BitArray(bestValue[0][13:21]).uint
+    # print(conv3)
+    # dense1 = BitArray(bestValue[0][21:29]).uint
+    # print(dense1)
+    # dense2 = BitArray(bestValue[0][29:35]).uint
+    # print(dense2)
 
 if __name__ == "__main__":
     main()

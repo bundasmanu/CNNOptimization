@@ -11,3 +11,7 @@ OPTIONS = 'options'
 X_LABEL_FILTERS = 'n_filtros'
 X_LABEL_NEURONS = 'n_neuronios'
 Y_LABEL_EPOCHS = 'n_epochs'
+
+SIGMOID = 'sigmoid'
+TANH = 'tanh'
+RELU = 'relu'
