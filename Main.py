@@ -778,11 +778,11 @@ def main():
     #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
     minBounds = numpy.ones(5)
     maxBounds = numpy.ones(5)
-    maxBounds[0] = 128
-    maxBounds[1] = 256
-    maxBounds[2] = 384 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
-    maxBounds[3] = 512
-    maxBounds[4] = 48
+    maxBounds[0] = 64
+    maxBounds[1] = 128
+    maxBounds[2] = 160 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
+    maxBounds[3] = 128
+    maxBounds[4] = 32
     bounds = (minBounds, maxBounds)
 
     #DEFINITION OF DIFFERENT TOPOLOGIES OPTIONS

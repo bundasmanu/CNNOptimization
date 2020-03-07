@@ -110,7 +110,7 @@ def alexNet(particleDimensions, x_train, x_test, y_train, y_test):
             x=x_train,
             y=y_train,
             batch_size=32,
-            epochs=50,
+            epochs=55,
             validation_data=(x_test, y_test),
             workers=4,
             shuffle=True,
