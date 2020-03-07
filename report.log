@@ -1905,3 +1905,6 @@
 2020-03-03 20:14:30,757 - pyswarms.single.global_best - INFO - Optimize for 5 iters with {'c1': 0.4, 'c2': 0.4, 'w': 0.9}
 2020-03-03 22:39:33,734 - pyswarms.single.global_best - INFO - Optimization finished | best cost: 5.350962868023116, best pos: [239.30088942  97.25294105 239.06155684 219.60244336 181.84330355
  134.96859511]
+2020-03-05 19:55:35,344 - tensorflow - WARNING - Tensor._shape is private, use Tensor.shape instead. Tensor._shape will eventually be removed.
+2020-03-05 19:55:35,397 - tensorflow - WARNING - Tensor._shape is private, use Tensor.shape instead. Tensor._shape will eventually be removed.
+2020-03-07 19:43:48,123 - pyswarms.single.global_best - INFO - Optimize for 20 iters with {'c1': 0.4, 'c2': 0.4, 'w': 0.9}

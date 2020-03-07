@@ -15,3 +15,6 @@ Y_LABEL_EPOCHS = 'n_epochs'
 SIGMOID = 'sigmoid'
 TANH = 'tanh'
 RELU = 'relu'
+
+SAVED_MODEL_FILE = 'model.h5'
+SAVED_MODEL_FILE2 = 'model2.h5'

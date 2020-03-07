@@ -21,9 +21,10 @@ from deap import base, creator, tools, algorithms
 from bitstring import BitArray
 from scipy.stats import bernoulli
 import AlexNet, VGGNet
+from keras.models import load_model
 import os
-#os.environ['TF_CPP_MIN_LOG_LEVEL']='2' #MAKES MORE FASTER THE INITIAL SETUP OF GPU --> WARNINGS INITIAL STEPS IS MORE QUICKLY
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"  #THIS LINE DISABLES GPU OPTIMIZATION
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2' #MAKES MORE FASTER THE INITIAL SETUP OF GPU --> WARNINGS INITIAL STEPS IS MORE QUICKLY
+#os.environ["CUDA_VISIBLE_DEVICES"]="-1"  #THIS LINE DISABLES GPU OPTIMIZATION
 from keras.datasets import cifar10
 
 def getDataset(testSize):
@@ -546,19 +547,19 @@ def main():
     y_test = numpy.array(y_test)
 
     #NOW I NEED TO GET ONLY FEW CLASS PER CLASS (100 samples per class for train) and (20 samples per class for test)
-    howManyValuesPerClass_Train = [600, 600, 600, 0, 600, 0, 0, 0, 600, 600] #INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
-    howManyValuesPerClass_Test = [300, 300, 300, 0, 300, 0, 0, 0, 300, 300]  # INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
+    howManyValuesPerClass_Train = [2000, 2000, 2000, 0, 2000, 0, 0, 0, 2000, 2000] #INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
+    howManyValuesPerClass_Test = [800, 800, 800, 0, 800, 0, 0, 0, 800, 800]  # INDEXES WITH 0 VALUE REPRESENT THE CLASS ALLOWED
     selectedIndexes_Train = numpy.array([])
     selectedIndexes_Test = numpy.array([])
 
     for i, j in zip_longest(range(y_train.shape[0]), range(y_test.shape[0])):
         if y_train[i][0] not in values: #IF IT'S A ALLOWED CLASS
-            if howManyValuesPerClass_Train[y_train[i][0]] < 600: #ONLY ACCEPTS UNTIL 100
+            if howManyValuesPerClass_Train[y_train[i][0]] < 4000: #ONLY ACCEPTS UNTIL 100
                 selectedIndexes_Train = numpy.append(selectedIndexes_Train, i) #ADD POSITION TO SELECTED_INDEXES
                 howManyValuesPerClass_Train[y_train[i][0]] = howManyValuesPerClass_Train[y_train[i][0]] + 1
         if j != None:
             if y_test[j][0] not in values:
-                if howManyValuesPerClass_Test[y_test[j][0]] < 300:
+                if howManyValuesPerClass_Test[y_test[j][0]] < 1000:
                     selectedIndexes_Test = numpy.append(selectedIndexes_Test, j)
                     howManyValuesPerClass_Test[y_test[j][0]] = howManyValuesPerClass_Test[y_test[j][0]] + 1
 
@@ -747,9 +748,16 @@ def main():
     '''
 
     # alexNetValues = [64, 128, 256, 256, 32, 512, 0.4, 0.0001]
-    #
-    alexNetValues = [239, 97, 239, 220, 182, 135, 0.4, 0.0001]
-    AlexNet.alexNet(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, particleDimensions=alexNetValues)
+    #alexNetValues = [32, 64, 64, 32, 16, 64, 0.4, 0.0001]
+
+    #alexNetValuesAugmented = [128, 256, 384, 512, 32, 64, 0.4, 0.0001]
+    #AlexNet.alexNet(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, particleDimensions=alexNetValuesAugmented)
+
+    #loaded_model = load_model(config.SAVED_MODEL_FILE2)
+    #AlexNet.alexNetAugmentation(loadModel=loaded_model, x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test, particleDimensions=alexNetValuesAugmented)
+    #scores = loaded_model.evaluate(x_test, y_test, verbose=1)
+    #print('Test loss:', scores[0])
+    #print('Test accuracy:', scores[1])
 
     '''
         TEST VGG NET
@@ -763,33 +771,36 @@ def main():
     '''
 
     #DEFINITION OF PSO PARAMETERS
-    # numberParticles = 15
-    # iterations = 5
-    # dimensions = 6 # [0-3] --> NUMBER FILTERS, [3-6] --> NUMBER NEURONS
-    #
-    # #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
-    # minBounds = numpy.ones(6)
-    # maxBounds = numpy.ones(6)
-    # maxBounds[0] = maxBounds[1] = maxBounds[2] = 256 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
-    # maxBounds[3] = maxBounds[4] = maxBounds[5] = 256 #FUNC_ACTIVATION RANGE [0,1 OR 2]
-    # bounds = (minBounds, maxBounds)
-    #
-    # #DEFINITION OF DIFFERENT TOPOLOGIES OPTIONS
-    # lbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2}
-    # lbest_kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : lbest_options}
-    # gbest_options = {config.C1 : 0.4, config.C2 : 0.4, config.INERTIA : 0.9}
-    # gbest_kwargs = {config.TYPE : config.GLOBAL_BEST, config.OPTIONS : gbest_options}
-    #
-    # optimizer = ps.single.GlobalBestPSO(n_particles=numberParticles, dimensions=dimensions,
-    #                                           options=gbest_options, bounds=bounds)
-    #
-    # cost, pos = optimizer.optimize(objective_func=objectiveFunctionAlexNet,x_train=x_train, x_test=x_test , y_train=y_train,
-    #                                y_test=y_test, iters=iterations)
-    #
-    # print(cost)
-    # print(pos)
-    #
-    # plots.plotCostHistory(optimizer=optimizer)
+    numberParticles = 30
+    iterations = 20
+    dimensions = 5 # [0-3] --> NUMBER FILTERS, [3-5] --> NUMBER NEURONS
+
+    #DEFINITION OF DIMENSIONS BOUNDS, X AXIS --> NEURONS and Y AXIS --> EPOCHS
+    minBounds = numpy.ones(5)
+    maxBounds = numpy.ones(5)
+    maxBounds[0] = 128
+    maxBounds[1] = 256
+    maxBounds[2] = 384 #I REDUCE THIS DIMENSIONS, IN ORDER TO MAKE OPTIMIZATION MORE QUICKLY
+    maxBounds[3] = 512
+    maxBounds[4] = 48
+    bounds = (minBounds, maxBounds)
+
+    #DEFINITION OF DIFFERENT TOPOLOGIES OPTIONS
+    lbest_options = {config.C1 : 0.3, config.C2 : 0.2, config.INERTIA : 0.9, config.NUMBER_NEIGHBORS : 4, config.MINKOWSKI_RULE : 2}
+    lbest_kwargs = {config.TYPE : config.LOCAL_BEST, config.OPTIONS : lbest_options}
+    gbest_options = {config.C1 : 0.4, config.C2 : 0.4, config.INERTIA : 0.9}
+    gbest_kwargs = {config.TYPE : config.GLOBAL_BEST, config.OPTIONS : gbest_options}
+
+    optimizer = ps.single.GlobalBestPSO(n_particles=numberParticles, dimensions=dimensions,
+                                              options=gbest_options, bounds=bounds)
+
+    cost, pos = optimizer.optimize(objective_func=objectiveFunctionAlexNet,x_train=x_train, x_test=x_test , y_train=y_train,
+                                   y_test=y_test, iters=iterations)
+
+    print(cost)
+    print(pos)
+
+    plots.plotCostHistory(optimizer=optimizer)
 
     '''
         ALEX NET WITH GENETIC ALGORITHM OPTIMIZATION

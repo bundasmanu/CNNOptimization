@@ -5,6 +5,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from bitstring import BitArray
 from typing import List
 import plots
+import config
 
 #REF UNDERSTAND: http://www.lapix.ufsc.br/ensino/visao/visao-computacionaldeep-learning/deep-learningreconhecimento-de-imagens/
 #ARQUITECHTURE CONFIGURATION: https://www.learnopencv.com/number-of-parameters-and-tensor-sizes-in-convolutional-neural-network/
@@ -111,11 +112,72 @@ def alexNet(particleDimensions, x_train, x_test, y_train, y_test):
             batch_size=32,
             epochs=50,
             validation_data=(x_test, y_test),
-            workers=6,
+            workers=4,
             shuffle=True,
         )
 
         scores = model.evaluate(x_test, y_test, verbose=1)
+        print('Test loss:', scores[0])
+        print('Test accuracy:', scores[1])
+
+        loss = 1.5 * ((1.0 - (1.0 / (particleDimensions[0]+particleDimensions[1]+particleDimensions[2])))
+                      + (1.0 - (1.0 / (particleDimensions[3]+particleDimensions[4])))) + 5.0 * (1.0 - scores[1])
+
+        plots.plotTrainValLoss(history)
+        plots.plotTrainValAcc(history)
+
+        #SAVE MODEL TO FILE --> IN ORDER TO KEP TRAINING MODEL AFTER THAT
+        #model.save(config.SAVED_MODEL_FILE2)
+        #del model
+
+        return loss
+
+    except:
+        raise
+
+def alexNetAugmentation(particleDimensions, x_train, x_test, y_train, y_test, loadModel):
+
+    try:
+
+        #CONVERT FLOAT DATA --> IF I USE PSO TO OPTIMIZE CNN MODEL
+        particleDimensions = [int(particleDimensions[i]) for i in range(len(particleDimensions))]
+
+        #OPTIMIZER
+        opt = keras.optimizers.RMSprop(learning_rate=0.0001, decay=1e-6)
+
+        # COMPILE MODEL
+        loadModel.compile(optimizer=opt, loss='categorical_crossentropy',
+                      metrics=['accuracy'])  # CROSSENTROPY BECAUSE IT'S MORE ADEQUATED TO MULTI-CLASS PROBLEMS
+
+        #DATA AUGMENTATION
+        image_gen = ImageDataGenerator(
+                                       width_shift_range=0.1,
+                                       height_shift_range=0.1,
+                                       rotation_range=10,
+                                       zoom_range=0.1,  # set range for random zoom
+                                       horizontal_flip=True,)
+                                       #validation_split=0.30  # randomly flip images
+                                       #featurewise_center=True
+
+        image_gen.fit(x_train)
+
+        #REF: https://stackoverflow.com/questions/53808335/data-augmentation-in-validation
+        #https: // stackoverflow.com / questions / 41174546 / keras - data - augmentation - parameters
+        train_generator = image_gen.flow(x_train, y_train, batch_size=64)
+        #validation_generator = image_gen.flow(x_test, y_test, batch_size=32)
+
+        history = loadModel.fit_generator(
+            generator=train_generator,
+            validation_data=(x_test, y_test),
+            epochs=60,
+            #use_multiprocessing=True,
+            steps_per_epoch=x_train.shape[0]/64,
+            validation_steps=x_test.shape[0]/16,
+            workers=4,
+            shuffle=True,
+        )
+
+        scores = loadModel.evaluate(x_test, y_test, verbose=1)
         print('Test loss:', scores[0])
         print('Test accuracy:', scores[1])
 
@@ -233,9 +295,9 @@ def alexNetForGA(ga_solution, x_train, x_test, y_train, y_test):
             x=x_train,
             y=y_train,
             batch_size=32,
-            epochs=10,
+            epochs=30,
             validation_data=(x_test, y_test),
-            workers=6,
+            workers=4,
             shuffle=True,
         )
 
